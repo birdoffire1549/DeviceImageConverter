@@ -1,0 +1,12 @@
+.*
+!.gitignore
+!.env
+ehthumbs.db
+Thumbs.db
+
+nbproject
+composer.lock
+
+build/
+bin/
+*.swp
