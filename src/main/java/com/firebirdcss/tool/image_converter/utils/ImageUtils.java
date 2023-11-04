@@ -95,10 +95,10 @@ public class ImageUtils {
      * 
      * @param image - The image to convert as {@link BufferedImage}
      * @param threshold - The threshold as int.
-     * @param bgBinValue - The binary value of the image background as int.
+     * @param blkBinValue - The binary value of black as int.
      * @return Returns the binary image.
      */
-    public static byte[][] convertImageToBinary(BufferedImage image, int threshold, int bgBinValue) {
+    public static byte[][] convertImageToBinary(BufferedImage image, int threshold, int blkBinValue) {
         byte[][] binImage = new byte[image.getHeight()][image.getWidth()];
         for (int y = 0; y < image.getHeight(); y++) { // Iterate the y axis...
             for (int x = 0; x < image.getWidth(); x++) { // Iterate the x axis row...
@@ -108,9 +108,9 @@ public class ImageUtils {
                 int blue = (color & 0x0000FF);
                 float grey = (float) (0.299 * (float)red + 0.587 * (float)green + 0.114 * (float)blue);
                 if (grey >= threshold) { // Value meets or exceeds threshold...
-                    binImage[y][x] = (byte)(bgBinValue == 0 ? 0 : 1);
+                    binImage[y][x] = (byte)(blkBinValue == 0 ? 1 : 0);
                 } else { // Value doesn't meet the threshold...
-                    binImage[y][x] = (byte)(bgBinValue == 0 ? 1 : 0);
+                    binImage[y][x] = (byte)blkBinValue;
                 }
             }
         }

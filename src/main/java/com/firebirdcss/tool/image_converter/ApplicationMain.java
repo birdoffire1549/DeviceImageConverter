@@ -1,11 +1,19 @@
 package com.firebirdcss.tool.image_converter;
 
+import java.awt.Canvas;
+import java.awt.Container;
+import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.util.Scanner;
 
 import javax.imageio.ImageIO;
 import javax.imageio.spi.IIORegistry;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JTextField;
+import javax.swing.SpringLayout;
 
 import com.firebirdcss.tool.image_converter.utils.ImageUtils;
 
@@ -20,6 +28,7 @@ import com.firebirdcss.tool.image_converter.utils.ImageUtils;
  *   <li>https://stackoverflow.com/questions/13605248/java-converting-image-to-bufferedimage</li>
  *   <li>https://support.ptc.com/help/mathcad/r9.0/en/index.html#page/PTC_Mathcad_Help/example_grayscale_and_color_in_images.html</li>
  *   <li>https://stackoverflow.com/questions/60380175/how-to-resolve-javax-imageio-iioexception-bogus-input-colorspace</li>
+ *   <li>https://www.javatpoint.com/java-swing</li>
  * </ul>
  * <p>
  * @author Scott Griffis
@@ -69,6 +78,9 @@ public class ApplicationMain {
             System.out.print("Scaling image... ");
             BufferedImage bScaledImage = ImageUtils.scaleImage(bStrippedImage, widthAndHeight); 
             System.out.println("Complete.");
+            
+            // FIXME:DELETE ME BELOW
+            displayImageInScreenGui(bScaledImage, 128, 64);
             
             // Obtain Threshold and desired black binary value...
             int threshold = getThreshold(sc);
@@ -371,5 +383,66 @@ public class ApplicationMain {
     private static void quitApplication() {
         System.out.println("\n\n~ Application Ended ~\n");
         System.exit(0);
+    }
+    
+    private static void displayImageInScreenGui(BufferedImage image, int screenWidth, int screenHeight) {
+        JFrame win = new JFrame();
+        
+        Canvas canvas = new Canvas() {
+            private static final long serialVersionUID = 1L;
+
+            @Override
+            public void paint(Graphics g) {
+                g.drawImage(image, 0, 0, this);
+                g.drawRect(0, 0, screenWidth, screenHeight);
+            }
+        };
+        
+        JLabel lblXPos, lblYPos;
+        JTextField xPos, yPos;
+        JButton btnUpdate;
+        
+        lblXPos = new JLabel("x pos: ");
+        lblYPos = new JLabel("y pos: ");
+        xPos = new JTextField("0");
+        yPos = new JTextField("0");
+        btnUpdate = new JButton("Update");
+        
+        Container pane = win.getContentPane();
+        SpringLayout layout = new SpringLayout();
+        pane.setLayout(layout);
+        
+        layout.putConstraint(SpringLayout.WEST, canvas, 100, SpringLayout.WEST, pane);
+        layout.putConstraint(SpringLayout.EAST, canvas, 129, SpringLayout.WEST, canvas);
+        layout.putConstraint(SpringLayout.NORTH, canvas, 6, SpringLayout.NORTH, pane);
+        layout.putConstraint(SpringLayout.SOUTH, canvas, 65, SpringLayout.NORTH, canvas);
+        
+        layout.putConstraint(SpringLayout.SOUTH, lblXPos, -8, SpringLayout.NORTH, btnUpdate);
+        layout.putConstraint(SpringLayout.WEST, lblXPos, 6, SpringLayout.WEST, pane);
+        
+        layout.putConstraint(SpringLayout.SOUTH, xPos, -6, SpringLayout.NORTH, btnUpdate);
+        layout.putConstraint(SpringLayout.WEST, xPos, 3, SpringLayout.EAST, lblXPos);
+        layout.putConstraint(SpringLayout.EAST, xPos, 50, SpringLayout.WEST, xPos);
+        
+        layout.putConstraint(SpringLayout.SOUTH, lblYPos, -8, SpringLayout.NORTH, btnUpdate);
+        layout.putConstraint(SpringLayout.WEST, lblYPos, 10, SpringLayout.EAST, xPos);
+        
+        layout.putConstraint(SpringLayout.SOUTH, yPos, -6, SpringLayout.NORTH, btnUpdate);
+        layout.putConstraint(SpringLayout.WEST, yPos, 3, SpringLayout.EAST, lblYPos);
+        layout.putConstraint(SpringLayout.EAST, yPos, 50, SpringLayout.WEST, yPos);
+        
+        layout.putConstraint(SpringLayout.SOUTH, btnUpdate, -6, SpringLayout.SOUTH, pane);
+        layout.putConstraint(SpringLayout.WEST, btnUpdate, 150, SpringLayout.WEST, pane);
+        
+        pane.add(canvas);
+        pane.add(lblXPos);
+        pane.add(xPos);
+        pane.add(lblYPos);
+        pane.add(yPos);
+        pane.add(btnUpdate);
+        
+        
+        win.setSize(400, 400);
+        win.setVisible(true);
     }
 }
