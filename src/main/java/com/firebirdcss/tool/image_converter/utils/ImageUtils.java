@@ -96,25 +96,67 @@ public class ImageUtils {
      * @param image - The image to convert as {@link BufferedImage}
      * @param threshold - The threshold as int.
      * @param blkBinValue - The binary value of black as int.
+     * @param fixBytes - This indicates if image data should be padded so rows fit into bytes properly, as boolean
+     * @param binPadValue - The binary value to use for padding or -1 to auto determine based on nearest pixel as int.
+     * 
      * @return Returns the binary image.
      */
-    public static byte[][] convertImageToBinary(BufferedImage image, int threshold, int blkBinValue) {
-        byte[][] binImage = new byte[image.getHeight()][image.getWidth()];
+    public static byte[][] convertImageToBinary(BufferedImage image, int threshold, int blkBinValue, boolean fixBytes, int binPadValue) {
+        int padNeeded = fixBytes ? (8 - (image.getWidth() % 8)) : 0;
+        int adjWidth = image.getWidth() + padNeeded;
+        byte[][] binImage = new byte[image.getHeight()][adjWidth];
         for (int y = 0; y < image.getHeight(); y++) { // Iterate the y axis...
+            int padAdjust = 0;
             for (int x = 0; x < image.getWidth(); x++) { // Iterate the x axis row...
                 int color = image.getRGB(x, y);
                 int red = color >> 16;
                 int green = (color & 0x00FFFF) >> 8;
                 int blue = (color & 0x0000FF);
                 float grey = (float) (0.299 * (float)red + 0.587 * (float)green + 0.114 * (float)blue);
-                if (grey >= threshold) { // Value meets or exceeds threshold...
-                    binImage[y][x] = (byte)(blkBinValue == 0 ? 1 : 0);
+                boolean meetsThresh = grey >= threshold;
+                
+                // Handle front padding...
+                if (x == 0 && padNeeded != 0) { // Pad the front...
+                    int pad = padNeeded / 2;
+                    if (pad > 0) {
+                        for (int i = 0; i < pad; i++) {
+                            if (binPadValue == -1) {
+                                binImage[y][x + padAdjust] = meetsThresh ? (byte)(blkBinValue == 0 ? 1 : 0) : (byte)blkBinValue;
+                            } else {
+                                binImage[y][x + padAdjust] = (byte)binPadValue;
+                            }
+                            padAdjust ++;
+                        }
+                    }
+                }
+                
+                // Store the converted pixel...
+                if (meetsThresh) { // Value meets or exceeds threshold...
+                    binImage[y][x + padAdjust] = (byte)(blkBinValue == 0 ? 1 : 0);
                 } else { // Value doesn't meet the threshold...
-                    binImage[y][x] = (byte)blkBinValue;
+                    binImage[y][x + padAdjust] = (byte)blkBinValue;
+                }
+                
+                // Handle back padding...
+                if (x == image.getWidth() - 1 && padNeeded != 0) { // Pad the back...
+                    int pad = padNeeded - (padNeeded / 2);
+                    if (pad > 0) { // Need some back padding...
+                        padAdjust ++;
+                        for (int i = 0; i < pad; i++) {
+                            if (binPadValue == -1) {
+                                binImage[y][x + padAdjust] = meetsThresh ? (byte)(blkBinValue == 0 ? 1 : 0) : (byte)blkBinValue;
+                            } else {
+                                binImage[y][x + padAdjust] = (byte)binPadValue;
+                            }
+                            padAdjust++;
+                        }
+                    }
                 }
             }
         }
         
         return binImage;
     }
+    
+    
 }

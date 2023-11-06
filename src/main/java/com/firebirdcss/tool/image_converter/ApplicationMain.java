@@ -80,14 +80,14 @@ public class ApplicationMain {
             System.out.println("Complete.");
             
             // FIXME:DELETE ME BELOW
-            displayImageInScreenGui(bScaledImage, 128, 64);
+//            displayImageInScreenGui(bScaledImage, 128, 64);
             
             // Obtain Threshold and desired black binary value...
             int threshold = getThreshold(sc);
             int blkBinValue = getBlackBinaryValue(sc);
           
             System.out.print("Converting image to binary... ");
-            byte[][] binImage = ImageUtils.convertImageToBinary(bScaledImage, threshold, blkBinValue);
+            byte[][] binImage = ImageUtils.convertImageToBinary(bScaledImage, threshold, blkBinValue, true, blkBinValue == 0 ? 1 : 0);
             System.out.println("Complete.");
             
             // Show binary image data...
@@ -337,31 +337,18 @@ public class ApplicationMain {
         StringBuilder sb = new StringBuilder("unsigned char theImage[] = {\n");
         for (int y = 0; y < binImg.length; y++) {
             sb.append("  ");
-            int paddingNeeded = binImg[y].length % 8;
-            paddingNeeded = paddingNeeded != 0 ? 8 - paddingNeeded : 0;
-            int initPad = paddingNeeded / 2;
-            int backPad = paddingNeeded - initPad;
             int byteIndex = 0;
-            
             for (int x = 0; x < binImg[y].length; x++) { // Iterate the row (x) pixels...
-                if (x == 0 || (initPad + x) % 8 == 0) { // Prior to byte...
+                // Append 0b to byte data...
+                if (x == 0 || x % 8 == 0) { // Prior to byte...
                     sb.append("0b");
-                    if (x == 0 && initPad > 0) { // In position for initial padding...
-                        for (int i = 0; i < initPad; i++) {
-                            sb.append(bgBinDigit);
-                        }
-                    }
                 }
                 
+                // Append the current image pixel value...
                 sb.append(String.valueOf((int) binImg[y][x]));
                 
-                if (x == binImg[y].length - 1 && backPad > 0) { // In backPad position...
-                    for (int i = 0; i < backPad; i++) { // Generate back padding...
-                        sb.append(bgBinDigit);
-                    }
-                }
-                
-                if (x < binImg[y].length - 1 && (initPad + x - byteIndex) % 7 == 0 && (initPad + x) % 8 != 0) { // In last of byte position...
+                // Append comma at end of byte...
+                if (x < binImg[y].length - 1 && (x - byteIndex) % 7 == 0 && x % 8 != 0) { // In last of byte position...
                     sb.append(", ");
                     byteIndex++;
                 }
@@ -384,6 +371,7 @@ public class ApplicationMain {
         System.out.println("\n\n~ Application Ended ~\n");
         System.exit(0);
     }
+    
     
     private static void displayImageInScreenGui(BufferedImage image, int screenWidth, int screenHeight) {
         JFrame win = new JFrame();
