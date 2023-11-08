@@ -37,7 +37,7 @@ import com.firebirdcss.tool.image_converter.utils.ImageUtils;
  * Version: 0.3.0
  *
  */
-public class ApplicationMain {
+public class ConsoleAppMain {
     
     /**
      * MAIN MEHTOD: The main method and entry point of this application. Here is were
