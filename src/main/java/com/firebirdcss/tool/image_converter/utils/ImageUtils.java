@@ -30,11 +30,22 @@ public class ImageUtils {
     public static BufferedImage scaleImage(BufferedImage image, String widthAndHeight) {
         String[] wh = widthAndHeight.split(",");
         
+        return scaleImage(image, Integer.parseInt(wh[0]), Integer.parseInt(wh[1]));
+    }
+    
+    /**
+     * 
+     * @param image
+     * @param width
+     * @param height
+     * @return
+     */
+    public static BufferedImage scaleImage(BufferedImage image, int width, int height) {
         // Derive the scaled image...
         Image sImage = image.getScaledInstance(
-            (wh[0].equals("0") ? image.getWidth() : Integer.parseInt(wh[0])), 
-            (wh[1].equals("0") ? image.getHeight() : Integer.parseInt(wh[1])), 
-            Image.SCALE_FAST
+            (width == 0 ? image.getWidth() : width), 
+            (height == 0 ? image.getHeight() : height), 
+            Image.SCALE_DEFAULT
         );
         
         // Convert the image back to a BufferedImage...

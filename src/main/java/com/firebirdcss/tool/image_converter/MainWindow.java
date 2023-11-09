@@ -1,15 +1,21 @@
 package com.firebirdcss.tool.image_converter;
 
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.File;
+import java.io.IOException;
+import java.util.EventObject;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSeparator;
@@ -22,7 +28,12 @@ import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.Border;
+import javax.swing.event.CellEditorListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
+import javax.swing.table.TableCellEditor;
 
 /**
  * 
@@ -34,15 +45,19 @@ import javax.swing.table.JTableHeader;
 public class MainWindow extends JFrame {
     private static final long serialVersionUID = 1L;
     
+    private AssetManager assetManager = new AssetManager();
+    
     private Border btnBorder = BorderFactory.createBevelBorder(BevelBorder.RAISED);
     
     private JFrame thisWindow = this;
     private Container pane = this.getContentPane();
     private SpringLayout mainLayout = new SpringLayout();
     
+    /* Device Display: */
     private JLabel lblDisp = new JLabel("Device Display:");
     private Screen disp = new Screen(128, 64);
     
+    /* Display Settings: */
     private JPanel dispCtrls = new JPanel();
     private JLabel lblWidth = new JLabel("Width:");
     private JSpinner width = new JSpinner(new SpinnerNumberModel(128, 5, 300, 1));
@@ -51,34 +66,44 @@ public class MainWindow extends JFrame {
     private JButton btnDispUpdate = new JButton("Update");
     private SpringLayout layDispCtrls = new SpringLayout();
     
+    /* BUTTTON: Add Image Asset */
     private JButton btnAddAsset = new JButton("Add Image Asset");
     
-    private String headers[] = {"Asset ID", "Width", "Height", "XPos", "YPos"};
-    private String data[][] = {{"Sample_ID", "16", "16", "0", "0"}};
-    private JTable assetTable = new JTable(data, headers);
+    /* Image Assets: */
+    private DefaultTableModel assetTableModel = new DefaultTableModel(assetManager.getData(), assetManager.getHeaders());
+    private JTable assetTable = new JTable(assetTableModel);
     private JTableHeader header = assetTable.getTableHeader();
     private JScrollPane assetsPane = new JScrollPane(assetTable);
     
+    /* BUTTON: Export All */
     private JButton btnExportAll = new JButton("Export All");
     
+    /* Selected Asset: */
     private JPanel pnlSelAsset = new JPanel();
     private JLabel lblAssetId = new JLabel("Asset ID:");
     private JTextField txtAssetId = new JTextField();
     private JLabel lblXPos = new JLabel("X-Pos:");
-    private JTextField txtXPos = new JTextField();
+    private JSpinner spnXPos = new JSpinner();
     private JLabel lblYPos = new JLabel("Y-Pos:");
-    private JTextField txtYPos = new JTextField();
+    private JSpinner spnYPos = new JSpinner();
     private JButton btnUpdatePos = new JButton("Update Position");
     private JLabel lblImageSize = new JLabel("Image Size:");
-    private JTextField txtImageWidth = new JTextField();
+    private JSpinner spnImageWidth = new JSpinner();
     private JLabel lblBy = new JLabel(" x ");
-    private JTextField txtImageHeight = new JTextField();
+    private JSpinner spnImageHeight = new JSpinner();
     private JButton btnImgResize = new JButton("Resize");
     private JSeparator sep = new JSeparator();
     private JButton btnImgExport = new JButton("Export");
     private JButton btnImgRemove = new JButton("Remove");
     private SpringLayout selAssetLayout = new SpringLayout();
     
+    
+    
+    /**
+     * CONSTRUCTOR: The class constructor. This is where this object gets
+     * initialized. 
+     *
+     */
     public MainWindow() {
         this.setTitle("Devices Image Converter");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -92,18 +117,139 @@ public class MainWindow extends JFrame {
         thisWindow.pack();
     }
     
+    /**
+     * PRIVATE METHOD: This is where all of the ActionListeners are created and
+     * assigned for use by various parts of the window's interface.
+     */
     private void doAddActionListeners() {
+        /* BUTTON: btnDispUpdate (Update) */
         btnDispUpdate.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 disp.setSize((Integer) width.getValue(), (Integer) height.getValue());
-                disp.repaint();
-                SwingUtilities.updateComponentTreeUI(thisWindow);
-                thisWindow.setPreferredSize(new Dimension(getContentWidth(), getContentHeight()));
-                thisWindow.pack();
+                new Thread() {
+                    @Override
+                    public void run() {
+                        disp.repaint();
+                        SwingUtilities.updateComponentTreeUI(thisWindow);
+                        thisWindow.setPreferredSize(new Dimension(getContentWidth(), getContentHeight()));
+                        thisWindow.pack();
+                    }
+                }.start();
+            }
+        });
+        
+        /* BUTTON: btnAddAsset (Add Image Asset) */
+        btnAddAsset.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                try {
+                    JFileChooser fileChooser = new JFileChooser();
+                    int retVal = fileChooser.showOpenDialog(thisWindow);
+                    if (retVal == JFileChooser.APPROVE_OPTION) {
+                        File imageFile = fileChooser.getSelectedFile();
+                        ImageAsset asset = new ImageAsset(imageFile);
+                        disp.registerItem(asset);
+                        new Thread() {
+                            @Override
+                            public void run() {
+                                disp.repaint();
+                                assetManager.add(asset);
+                                refreshImageAssets(true);
+                                resetSelectedAssetObjects();
+                            }
+                        }.start();
+                    }
+                } catch (IOException ex) {
+                    JOptionPane.showMessageDialog(thisWindow, "Chosen image file resulted in an Exception:\n\t" + ex.getMessage(), "Image Error", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        
+        /* TABLE: assetTable Selection Listener */
+        assetTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting()) {
+                    int selRow = assetTable.getSelectedRow();
+                    if (selRow != -1) {
+                        String imageId = (String) assetTable.getValueAt(selRow, 0);
+                        ImageAsset asset = assetManager.get(imageId);
+                        if (asset != null) {
+                            enableSelectedAssetObjects();
+                            txtAssetId.setText(asset.getId());
+                            spnXPos.setValue(asset.getX());
+                            spnYPos.setValue(asset.getY());
+                            spnImageWidth.setValue(asset.getScaledImage().getWidth());
+                            spnImageHeight.setValue(asset.getScaledImage().getHeight());
+                        }
+                    }
+                }
+            }
+        });
+        
+        /* BUTTON: btnUpdatePos (Update Position) */
+        btnUpdatePos.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!txtAssetId.getText().isBlank()) {
+                    disp.moveItem(txtAssetId.getText(), ((Integer)spnXPos.getValue()).intValue(), ((Integer)spnYPos.getValue()).intValue());
+                    new Thread() {
+                        @Override
+                        public void run() {
+                            disp.repaint();
+                            refreshImageAssets(false);
+                        }
+                    }.start();
+                }
+            }
+        });
+        
+        /* BUTTON: btnImgResize (Resize) */
+        btnImgResize.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!txtAssetId.getText().isBlank()) { // Asset ID is not blank...
+                    ImageAsset asset = assetManager.get(txtAssetId.getText());
+                    if (asset != null) {
+                        asset.getScaledImage(
+                            ((Integer) spnImageWidth.getValue()).intValue(), 
+                            ((Integer) spnImageHeight.getValue()).intValue()
+                        );
+                        disp.registerItem(asset);
+                        new Thread() {
+                            @Override
+                            public void run() {
+                                disp.repaint();
+                                refreshImageAssets(false);
+                            }
+                        }.start();
+                    }
+                }
+            }
+        });
+        
+        /* BUTTON: btnImgRemove (Remove) */
+        btnImgRemove.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!txtAssetId.getText().isBlank()) {
+                    assetManager.remove(txtAssetId.getText());
+                    disp.unregisterItem(txtAssetId.getText());
+                    new Thread() {
+                        @Override
+                        public void run() {
+                            disp.repaint();
+                            refreshImageAssets(true);
+                            resetSelectedAssetObjects();
+                        }
+                    }.start();
+                }
             }
         });
     }
+    
+    
     
     private void doAddControlsToContainers() {
         /* Display Size: */
@@ -117,14 +263,14 @@ public class MainWindow extends JFrame {
         pnlSelAsset.add(lblAssetId);
         pnlSelAsset.add(txtAssetId);
         pnlSelAsset.add(lblXPos);
-        pnlSelAsset.add(txtXPos);
+        pnlSelAsset.add(spnXPos);
         pnlSelAsset.add(lblYPos);
-        pnlSelAsset.add(txtYPos);
+        pnlSelAsset.add(spnYPos);
         pnlSelAsset.add(btnUpdatePos);
         pnlSelAsset.add(lblImageSize);
-        pnlSelAsset.add(txtImageWidth);
+        pnlSelAsset.add(spnImageWidth);
         pnlSelAsset.add(lblBy);
-        pnlSelAsset.add(txtImageHeight);
+        pnlSelAsset.add(spnImageHeight);
         pnlSelAsset.add(btnImgResize);
         pnlSelAsset.add(sep);
         pnlSelAsset.add(btnImgExport);
@@ -156,28 +302,29 @@ public class MainWindow extends JFrame {
         /* Image Assets: */
         selAssetLayout.putConstraint(SpringLayout.NORTH, lblAssetId, 6, SpringLayout.NORTH, pnlSelAsset);
         selAssetLayout.putConstraint(SpringLayout.WEST, lblAssetId, 6, SpringLayout.WEST, pnlSelAsset);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, txtAssetId, 6, SpringLayout.NORTH, pnlSelAsset);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, txtAssetId, 1, SpringLayout.NORTH, pnlSelAsset);
         selAssetLayout.putConstraint(SpringLayout.WEST, txtAssetId, 2, SpringLayout.EAST, lblAssetId);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, lblXPos, 6, SpringLayout.NORTH, pnlSelAsset);
-        selAssetLayout.putConstraint(SpringLayout.WEST, lblXPos, 12, SpringLayout.EAST, txtAssetId);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, txtXPos, 6, SpringLayout.NORTH, pnlSelAsset);
-        selAssetLayout.putConstraint(SpringLayout.WEST, txtXPos, 2, SpringLayout.EAST, lblXPos);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, lblYPos, 6, SpringLayout.NORTH, pnlSelAsset);
-        selAssetLayout.putConstraint(SpringLayout.WEST, lblYPos, 6, SpringLayout.EAST, txtXPos);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, txtYPos, 6, SpringLayout.NORTH, pnlSelAsset);
-        selAssetLayout.putConstraint(SpringLayout.WEST, txtYPos, 2, SpringLayout.EAST, lblYPos);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, btnUpdatePos, 1, SpringLayout.NORTH, pnlSelAsset);
-        selAssetLayout.putConstraint(SpringLayout.EAST, btnUpdatePos, -6, SpringLayout.EAST, pnlSelAsset);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, lblImageSize, 20, SpringLayout.SOUTH, lblAssetId);
+        selAssetLayout.putConstraint(SpringLayout.EAST, txtAssetId, -6, SpringLayout.EAST, pnlSelAsset);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, lblXPos, 6, SpringLayout.SOUTH, txtAssetId);
+        selAssetLayout.putConstraint(SpringLayout.WEST, lblXPos, 6, SpringLayout.WEST, pnlSelAsset);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, spnXPos, 6, SpringLayout.SOUTH, txtAssetId);
+        selAssetLayout.putConstraint(SpringLayout.WEST, spnXPos, 2, SpringLayout.EAST, lblXPos);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, lblYPos, 6, SpringLayout.SOUTH, txtAssetId);
+        selAssetLayout.putConstraint(SpringLayout.WEST, lblYPos, 6, SpringLayout.EAST, spnXPos);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, spnYPos, 6, SpringLayout.SOUTH, txtAssetId);
+        selAssetLayout.putConstraint(SpringLayout.WEST, spnYPos, 2, SpringLayout.EAST, lblYPos);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, btnUpdatePos, 6, SpringLayout.SOUTH, lblAssetId);
+        selAssetLayout.putConstraint(SpringLayout.WEST, btnUpdatePos, 12, SpringLayout.EAST, spnYPos);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, lblImageSize, 15, SpringLayout.SOUTH, lblXPos);
         selAssetLayout.putConstraint(SpringLayout.WEST, lblImageSize, 6, SpringLayout.WEST, pnlSelAsset);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, txtImageWidth, 20, SpringLayout.SOUTH, lblAssetId);
-        selAssetLayout.putConstraint(SpringLayout.WEST, txtImageWidth, 12, SpringLayout.EAST, lblImageSize);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, lblBy, 20, SpringLayout.SOUTH, lblAssetId);
-        selAssetLayout.putConstraint(SpringLayout.WEST, lblBy, 3, SpringLayout.EAST, txtImageWidth);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, txtImageHeight, 20, SpringLayout.SOUTH, lblAssetId);
-        selAssetLayout.putConstraint(SpringLayout.WEST, txtImageHeight, 3, SpringLayout.EAST, lblBy);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, btnImgResize, 15, SpringLayout.SOUTH, lblAssetId);
-        selAssetLayout.putConstraint(SpringLayout.WEST, btnImgResize, 12, SpringLayout.EAST, txtImageHeight);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, spnImageWidth, 15, SpringLayout.SOUTH, lblXPos);
+        selAssetLayout.putConstraint(SpringLayout.WEST, spnImageWidth, 12, SpringLayout.EAST, lblImageSize);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, lblBy, 16, SpringLayout.SOUTH, lblXPos);
+        selAssetLayout.putConstraint(SpringLayout.WEST, lblBy, 3, SpringLayout.EAST, spnImageWidth);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, spnImageHeight, 15, SpringLayout.SOUTH, lblXPos);
+        selAssetLayout.putConstraint(SpringLayout.WEST, spnImageHeight, 3, SpringLayout.EAST, lblBy);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, btnImgResize, 12, SpringLayout.SOUTH, lblXPos);
+        selAssetLayout.putConstraint(SpringLayout.WEST, btnImgResize, 12, SpringLayout.EAST, spnImageHeight);
         selAssetLayout.putConstraint(SpringLayout.NORTH, sep, 6, SpringLayout.SOUTH, lblImageSize);
         selAssetLayout.putConstraint(SpringLayout.WEST, sep, 2, SpringLayout.WEST, pnlSelAsset);
         selAssetLayout.putConstraint(SpringLayout.EAST, sep, -2, SpringLayout.EAST, pnlSelAsset);
@@ -222,26 +369,48 @@ public class MainWindow extends JFrame {
         assetsPane.setBorder(BorderFactory.createTitledBorder("Image Assets:"));
         assetsPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         assetsPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        assetTable.setRowSelectionAllowed(true);
+        assetTable.setDefaultEditor(Object.class, new TableCellEditor() {
+            @Override
+            public Object getCellEditorValue() {return null;}
+            @Override
+            public boolean isCellEditable(EventObject anEvent) {return false;}
+            @Override
+            public boolean shouldSelectCell(EventObject anEvent) {return false;}
+            @Override
+            public boolean stopCellEditing() {return false;}
+            @Override
+            public void cancelCellEditing() {}
+            @Override
+            public void addCellEditorListener(CellEditorListener l) {}
+            @Override
+            public void removeCellEditorListener(CellEditorListener l) {}
+            @Override
+            public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {return null;}
+        });
         
         /* BUTTON: Export All */
         btnExportAll.setPreferredSize(new Dimension(700, 25));
         btnExportAll.setBorder(btnBorder);
         
         /* Selected Asset: */
-        pnlSelAsset.setPreferredSize(new Dimension(700, 145));
+        pnlSelAsset.setPreferredSize(new Dimension(700, 160));
         pnlSelAsset.setBorder(BorderFactory.createTitledBorder("Selected Asset:"));
         pnlSelAsset.setLayout(selAssetLayout);
-        txtAssetId.setPreferredSize(new Dimension(200, 20));
         txtAssetId.setEditable(false);
-        txtXPos.setPreferredSize(new Dimension(50,20));
-        txtYPos.setPreferredSize(new Dimension(50,20));
-        txtImageWidth.setPreferredSize(new Dimension(50, 20));
-        txtImageWidth.setEditable(false);
-        txtImageHeight.setPreferredSize(new Dimension(50, 20));
-        txtImageHeight.setEditable(false);
+        spnXPos.setPreferredSize(new Dimension(50,20));
+        spnYPos.setPreferredSize(new Dimension(50,20));
+        spnImageWidth.setPreferredSize(new Dimension(50, 20));
+        spnImageHeight.setPreferredSize(new Dimension(50, 20));
         sep.setOrientation(SwingConstants.HORIZONTAL);
         sep.setBackground(Color.LIGHT_GRAY);
+        
+        resetSelectedAssetObjects();
     }
+    
+    /* ==============================================================
+     *                     PRIVATE Methods Below 
+     * ==============================================================*/
     
     private int getContentHeight() {
         int result = 
@@ -261,5 +430,46 @@ public class MainWindow extends JFrame {
         int result = assetsPane.getPreferredSize().width;
         
         return result + 100;
+    }
+    
+    private void resetSelectedAssetObjects() {
+        txtAssetId.setText("");
+        spnXPos.setValue(0);
+        spnYPos.setValue(0);
+        spnImageWidth.setValue(0);
+        spnImageHeight.setValue(0);
+        
+        spnXPos.setEnabled(false);
+        spnYPos.setEnabled(false);
+        spnImageWidth.setEnabled(false);
+        spnImageHeight.setEnabled(false);
+        
+        btnUpdatePos.setEnabled(false);
+        btnImgResize.setEnabled(false);
+        btnImgRemove.setEnabled(false);
+        btnImgExport.setEnabled(false);
+    }
+    
+    private void enableSelectedAssetObjects() {
+        spnXPos.setEnabled(true);
+        spnYPos.setEnabled(true);
+        spnImageWidth.setEnabled(true);
+        spnImageHeight.setEnabled(true);
+        btnUpdatePos.setEnabled(true);
+        btnImgResize.setEnabled(true);
+        btnImgRemove.setEnabled(true);
+        btnImgExport.setEnabled(true);
+    }
+    
+    private void refreshImageAssets(boolean clearSelection) {
+        int rSel = assetTable.getSelectedRow();
+        DefaultTableModel tModel = (DefaultTableModel) assetTable.getModel();
+        tModel.setDataVector(assetManager.getData(), assetManager.getHeaders());
+        tModel.fireTableDataChanged();
+        if (clearSelection) {
+            assetTable.clearSelection();
+        } else if (rSel != -1) {
+            assetTable.setRowSelectionInterval(rSel, rSel);
+        }
     }
 }
