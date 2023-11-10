@@ -1,14 +1,17 @@
-package com.firebirdcss.tool.image_converter;
+package com.firebirdcss.tool.image_converter.view;
 
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.EventObject;
+import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
@@ -35,6 +38,10 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellEditor;
 
+import com.firebirdcss.tool.image_converter.AssetManager;
+import com.firebirdcss.tool.image_converter.ImageAsset;
+import com.firebirdcss.tool.image_converter.view.components.Screen;
+
 /**
  * 
  * @author Scott Griffis
@@ -57,7 +64,7 @@ public class MainWindow extends JFrame {
     private JLabel lblDisp = new JLabel("Device Display:");
     private Screen disp = new Screen(128, 64);
     
-    /* Display Settings: */
+    /* JPANEL: Display Settings: */
     private JPanel dispCtrls = new JPanel();
     private JLabel lblWidth = new JLabel("Width:");
     private JSpinner width = new JSpinner(new SpinnerNumberModel(128, 5, 300, 1));
@@ -69,7 +76,7 @@ public class MainWindow extends JFrame {
     /* BUTTTON: Add Image Asset */
     private JButton btnAddAsset = new JButton("Add Image Asset");
     
-    /* Image Assets: */
+    /* JSCROLLPANE: Image Assets: */
     private DefaultTableModel assetTableModel = new DefaultTableModel(assetManager.getData(), assetManager.getHeaders());
     private JTable assetTable = new JTable(assetTableModel);
     private JTableHeader header = assetTable.getTableHeader();
@@ -78,7 +85,7 @@ public class MainWindow extends JFrame {
     /* BUTTON: Export All */
     private JButton btnExportAll = new JButton("Export All");
     
-    /* Selected Asset: */
+    /* JPANEL: Selected Asset: */
     private JPanel pnlSelAsset = new JPanel();
     private JLabel lblAssetId = new JLabel("Asset ID:");
     private JTextField txtAssetId = new JTextField();
@@ -92,6 +99,7 @@ public class MainWindow extends JFrame {
     private JLabel lblBy = new JLabel(" x ");
     private JSpinner spnImageHeight = new JSpinner();
     private JButton btnImgResize = new JButton("Resize");
+    private JLabel lblResizeNote = new JLabel("Note: To keep aspect-ratio set one dimension as desired and the other to '-1'.");
     private JSeparator sep = new JSeparator();
     private JButton btnImgExport = new JButton("Export");
     private JButton btnImgRemove = new JButton("Remove");
@@ -114,6 +122,7 @@ public class MainWindow extends JFrame {
         doAddActionListeners();
         
         thisWindow.setPreferredSize(new Dimension(getContentWidth(), getContentHeight()));
+        thisWindow.setResizable(false);
         thisWindow.pack();
     }
     
@@ -247,6 +256,31 @@ public class MainWindow extends JFrame {
                 }
             }
         });
+        
+        /* BUTTON: btnImgExport (Export) */
+        btnImgExport.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (!txtAssetId.getText().isBlank()) {
+                    ImageAsset asset = assetManager.get(txtAssetId.getText());
+                    List<ImageAsset> aList = new ArrayList<>();
+                    aList.add(asset);
+                    ExportWindow epw = new ExportWindow(aList, thisWindow);
+                    epw.setVisible(true);
+                }
+            }
+        });
+        
+        /* BUTTON: btnExportAll (Export All) */
+        btnExportAll.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (assetManager.size() > 0) {
+                    ExportWindow epw = new ExportWindow(assetManager.getAssets(), thisWindow);
+                    epw.setVisible(true);
+                }
+            }
+        });
     }
     
     
@@ -272,6 +306,7 @@ public class MainWindow extends JFrame {
         pnlSelAsset.add(lblBy);
         pnlSelAsset.add(spnImageHeight);
         pnlSelAsset.add(btnImgResize);
+        pnlSelAsset.add(lblResizeNote);
         pnlSelAsset.add(sep);
         pnlSelAsset.add(btnImgExport);
         pnlSelAsset.add(btnImgRemove);
@@ -325,6 +360,8 @@ public class MainWindow extends JFrame {
         selAssetLayout.putConstraint(SpringLayout.WEST, spnImageHeight, 3, SpringLayout.EAST, lblBy);
         selAssetLayout.putConstraint(SpringLayout.NORTH, btnImgResize, 12, SpringLayout.SOUTH, lblXPos);
         selAssetLayout.putConstraint(SpringLayout.WEST, btnImgResize, 12, SpringLayout.EAST, spnImageHeight);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, lblResizeNote, 20, SpringLayout.SOUTH, lblXPos);
+        selAssetLayout.putConstraint(SpringLayout.WEST, lblResizeNote, 3, SpringLayout.EAST, btnImgResize);
         selAssetLayout.putConstraint(SpringLayout.NORTH, sep, 6, SpringLayout.SOUTH, lblImageSize);
         selAssetLayout.putConstraint(SpringLayout.WEST, sep, 2, SpringLayout.WEST, pnlSelAsset);
         selAssetLayout.putConstraint(SpringLayout.EAST, sep, -2, SpringLayout.EAST, pnlSelAsset);
@@ -402,6 +439,8 @@ public class MainWindow extends JFrame {
         spnYPos.setPreferredSize(new Dimension(50,20));
         spnImageWidth.setPreferredSize(new Dimension(50, 20));
         spnImageHeight.setPreferredSize(new Dimension(50, 20));
+        lblResizeNote.setForeground(Color.RED);
+        lblResizeNote.setFont(new Font(lblResizeNote.getFont().getName(), Font.PLAIN, 9));
         sep.setOrientation(SwingConstants.HORIZONTAL);
         sep.setBackground(Color.LIGHT_GRAY);
         

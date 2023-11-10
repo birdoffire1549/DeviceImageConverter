@@ -1,6 +1,8 @@
 package com.firebirdcss.tool.image_converter;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -27,6 +29,17 @@ public class AssetManager {
     
     public void remove(String imageId) {
         assets.remove(imageId);
+    }
+    
+    public int size() {
+        return assets.size();
+    }
+    
+    public List<ImageAsset> getAssets() {
+        List<ImageAsset> results = new ArrayList<>();
+        results.addAll(assets.values());
+        
+        return results;
     }
     
     public String[] getHeaders() {

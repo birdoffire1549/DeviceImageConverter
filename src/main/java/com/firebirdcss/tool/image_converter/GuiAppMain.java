@@ -1,5 +1,9 @@
 package com.firebirdcss.tool.image_converter;
 
+import javax.swing.SwingUtilities;
+
+import com.firebirdcss.tool.image_converter.view.MainWindow;
+
 /**
  * 
  * @author Scott Griffis
@@ -16,7 +20,13 @@ public class GuiAppMain {
      * @param args - NOT USED!
      */
     public static void main(String[] args) {
-        MainWindow window = new MainWindow();
-        window.setVisible(true);
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                MainWindow window = new MainWindow();
+                
+                window.setVisible(true);
+            }
+        });
     }
 }

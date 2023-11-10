@@ -1,10 +1,12 @@
-package com.firebirdcss.tool.image_converter;
+package com.firebirdcss.tool.image_converter.view.components;
 
 import java.awt.Canvas;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.firebirdcss.tool.image_converter.ImageAsset;
 
 /**
  * 
