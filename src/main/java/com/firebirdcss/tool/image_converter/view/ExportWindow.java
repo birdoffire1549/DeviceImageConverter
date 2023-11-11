@@ -4,10 +4,14 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Toolkit;
+import java.awt.datatransfer.Clipboard;
+import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.List;
 
@@ -15,17 +19,25 @@ import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
 import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
+import javax.swing.JSeparator;
+import javax.swing.JSpinner;
 import javax.swing.JTable;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.SpringLayout;
+import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.event.CellEditorListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 
 import com.firebirdcss.tool.image_converter.AssetManager;
 import com.firebirdcss.tool.image_converter.ImageAsset;
+import com.firebirdcss.tool.image_converter.utils.ImageUtils;
 
 public class ExportWindow extends JFrame {
     private static final long serialVersionUID = 1L;
@@ -42,24 +54,35 @@ public class ExportWindow extends JFrame {
     private JScrollPane assetsPane = new JScrollPane(assetTable);
     
     /* SECTION - As: */
-    JPanel pnlExportAs = new JPanel();
-    SpringLayout layExportAs = new SpringLayout();
-    ButtonGroup grpAsOptions = new ButtonGroup();
-    JRadioButton rbCTypeArray = new JRadioButton("C-Type Binary Array");
-    JRadioButton rbJPEGImage = new JRadioButton("Scaled JPEG Image");
-    JRadioButton rbBinData = new JRadioButton("Binary Data");
-    JRadioButton rbBlockImage = new JRadioButton("Block Image");
+    private JPanel pnlExportAs = new JPanel();
+    private SpringLayout layExportAs = new SpringLayout();
+    private ButtonGroup grpAsOptions = new ButtonGroup();
+    private JRadioButton rbCTypeArray = new JRadioButton("C-Type Binary Array");
+    private JRadioButton rbJPEGImage = new JRadioButton("Scaled JPEG Image");
+    private JRadioButton rbBinData = new JRadioButton("Binary Data");
+    private JRadioButton rbBlockImage = new JRadioButton("Block Image");
+    private JSeparator sepExportAs = new JSeparator();
+    private JPanel pnlAddInfoCType = new JPanel();
+    private SpringLayout layAddInfoCType = new SpringLayout();
+    private JLabel lblConversionThreshold = new JLabel("Black & White conversion threshold:");
+    private JSpinner spnThreshold = new JSpinner(new SpinnerNumberModel(50, 0, 100, 1));
+    private JLabel lblPadValue = new JLabel("Binary Padding Value:");
+    private JSpinner spnPadValue = new JSpinner(new SpinnerNumberModel(0, 0, 1, 1));
+    private JLabel lblBinForBlack = new JLabel("Select binary color representation:");
+    private ButtonGroup grpBinForBlack = new ButtonGroup();
+    private JRadioButton rbOneForBlack = new JRadioButton("0 - White; 1 - Black");
+    private JRadioButton rbZeroForBlack = new JRadioButton("0 - Black; 1 - White");
     
     /* SECTION - Where: */
-    JPanel pnlExportWhere = new JPanel();
-    SpringLayout layExportWhere = new SpringLayout();
-    ButtonGroup grpWhereOptions = new ButtonGroup();
-    JRadioButton rbClipboard = new JRadioButton("Clipboard");
-    JRadioButton rbFile = new JRadioButton("File");
+    private JPanel pnlExportWhere = new JPanel();
+    private SpringLayout layExportWhere = new SpringLayout();
+    private ButtonGroup grpWhereOptions = new ButtonGroup();
+    private JRadioButton rbClipboard = new JRadioButton("Clipboard");
+    private JRadioButton rbFile = new JRadioButton("File");
     
     /* BUTTONS */
-    JButton btnExport = new JButton("Export");
-    JButton btnCancel = new JButton("Cancel");
+    private JButton btnExport = new JButton("Export");
+    private JButton btnCancel = new JButton("Cancel");
     
     private final JFrame parent;
     
@@ -107,7 +130,7 @@ public class ExportWindow extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if (rbCTypeArray.isSelected()) {
-                 // FIXME: CODEZ NEEDED!!! TO BE CONTINUED...
+                    exportCTypeArray();
                 } else if (rbJPEGImage.isSelected()) {
                  // FIXME: CODEZ NEEDED!!! TO BE CONTINUED...
                 } else if (rbBinData.isSelected()) {
@@ -115,8 +138,38 @@ public class ExportWindow extends JFrame {
                 } else if (rbBlockImage.isSelected()) {
                  // FIXME: CODEZ NEEDED!!! TO BE CONTINUED...
                 }
+                
+                thisWindow.dispatchEvent(new WindowEvent(thisWindow, WindowEvent.WINDOW_CLOSING));
             }
         });
+    }
+    
+    private void exportCTypeArray() {
+        StringBuilder sb = new StringBuilder();
+        for (ImageAsset a : am.getAssets()) { // Handle each asset...
+            byte[][] binImage = ImageUtils.convertImageToBinary(
+                a.getScaledImage(), 
+                ((Integer) spnThreshold.getValue()).intValue(), 
+                rbOneForBlack.isSelected() ? 1 : 0, 
+                true, 
+                ((Integer) spnPadValue.getValue()).intValue()
+            );
+            String array = ImageUtils.toCTypeArray(binImage, a.getId());
+            sb.append(array);
+            sb.append("\n\n");
+        }
+        
+        if (rbClipboard.isSelected()) {
+            // Send data to clipboard...
+            Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
+            StringSelection strSel = new StringSelection(sb.toString());
+            cb.setContents(strSel, null);
+            
+            // Let user know...
+            JOptionPane.showMessageDialog(thisWindow, "C-Type Array Code was send to Clipboard.");
+        } else if (rbFile.isSelected()) {
+            // FIXME: NEEDZ SOMZ CODEZ!!!
+        }
     }
     
     private void doInitializeElements() {
@@ -160,6 +213,14 @@ public class ExportWindow extends JFrame {
         rbJPEGImage.setEnabled(false); // Feature not yet added!!!
         rbBinData.setEnabled(false); // Feature not yet added!!!
         rbBlockImage.setEnabled(false); // Feature not yet added!!!
+        sepExportAs.setOrientation(SwingConstants.VERTICAL);
+        sepExportAs.setForeground(Color.LIGHT_GRAY);
+        pnlAddInfoCType.setLayout(layAddInfoCType);
+        pnlAddInfoCType.setBorder(BorderFactory.createTitledBorder("Additional Information:"));
+        pnlAddInfoCType.setEnabled(true);
+        grpBinForBlack.add(rbOneForBlack);
+        grpBinForBlack.add(rbZeroForBlack);
+        rbOneForBlack.setSelected(true);
         
         /* SECTION - Export Where: */
         pnlExportWhere.setLayout(layExportWhere);
@@ -183,6 +244,17 @@ public class ExportWindow extends JFrame {
         pnlExportAs.add(rbJPEGImage);
         pnlExportAs.add(rbBinData);
         pnlExportAs.add(rbBlockImage);
+        pnlExportAs.add(sepExportAs);
+        pnlExportAs.add(pnlAddInfoCType);
+        
+        /* SECTION - Additional Information: */
+        pnlAddInfoCType.add(lblConversionThreshold);
+        pnlAddInfoCType.add(spnThreshold);
+        pnlAddInfoCType.add(lblPadValue);
+        pnlAddInfoCType.add(spnPadValue);
+        pnlAddInfoCType.add(lblBinForBlack);
+        pnlAddInfoCType.add(rbOneForBlack);
+        pnlAddInfoCType.add(rbZeroForBlack);
         
         /* SECTION - Export Where: */
         pnlExportWhere.add(rbClipboard);
@@ -206,6 +278,29 @@ public class ExportWindow extends JFrame {
         layExportAs.putConstraint(SpringLayout.WEST, rbBinData, 12, SpringLayout.WEST, pnlExportAs);
         layExportAs.putConstraint(SpringLayout.NORTH, rbBlockImage, 6, SpringLayout.SOUTH, rbBinData);
         layExportAs.putConstraint(SpringLayout.WEST, rbBlockImage, 12, SpringLayout.WEST, pnlExportAs);
+        layExportAs.putConstraint(SpringLayout.NORTH, sepExportAs, 3, SpringLayout.NORTH, pnlExportAs);
+        layExportAs.putConstraint(SpringLayout.SOUTH, sepExportAs, -3, SpringLayout.SOUTH, pnlExportAs);
+        layExportAs.putConstraint(SpringLayout.WEST, sepExportAs, 12, SpringLayout.EAST, rbCTypeArray);
+        layExportAs.putConstraint(SpringLayout.NORTH, pnlAddInfoCType, 3, SpringLayout.NORTH, pnlExportAs);
+        layExportAs.putConstraint(SpringLayout.SOUTH, pnlAddInfoCType, -3, SpringLayout.SOUTH, pnlExportAs);
+        layExportAs.putConstraint(SpringLayout.WEST, pnlAddInfoCType, 3, SpringLayout.EAST, sepExportAs);
+        layExportAs.putConstraint(SpringLayout.EAST, pnlAddInfoCType, -3, SpringLayout.EAST, pnlExportAs);
+        
+        /* SECTION - Additional Information: */
+        layAddInfoCType.putConstraint(SpringLayout.NORTH, lblConversionThreshold, 6, SpringLayout.NORTH, pnlAddInfoCType);
+        layAddInfoCType.putConstraint(SpringLayout.WEST, lblConversionThreshold, 6, SpringLayout.WEST, pnlAddInfoCType);
+        layAddInfoCType.putConstraint(SpringLayout.NORTH, spnThreshold, 3, SpringLayout.NORTH, pnlAddInfoCType);
+        layAddInfoCType.putConstraint(SpringLayout.WEST, spnThreshold, 6, SpringLayout.EAST, lblConversionThreshold);
+        layAddInfoCType.putConstraint(SpringLayout.NORTH, lblPadValue, 5, SpringLayout.SOUTH, lblConversionThreshold);
+        layAddInfoCType.putConstraint(SpringLayout.WEST, lblPadValue, 6, SpringLayout.WEST, pnlAddInfoCType);
+        layAddInfoCType.putConstraint(SpringLayout.NORTH, spnPadValue, 1, SpringLayout.SOUTH, lblConversionThreshold);
+        layAddInfoCType.putConstraint(SpringLayout.WEST, spnPadValue, 6, SpringLayout.EAST, lblPadValue);
+        layAddInfoCType.putConstraint(SpringLayout.NORTH, lblBinForBlack, 8, SpringLayout.SOUTH, lblPadValue);
+        layAddInfoCType.putConstraint(SpringLayout.WEST, lblBinForBlack, 6, SpringLayout.WEST, pnlAddInfoCType);
+        layAddInfoCType.putConstraint(SpringLayout.NORTH, rbOneForBlack, 2, SpringLayout.SOUTH, lblBinForBlack);
+        layAddInfoCType.putConstraint(SpringLayout.WEST, rbOneForBlack, 6, SpringLayout.WEST, pnlAddInfoCType);
+        layAddInfoCType.putConstraint(SpringLayout.NORTH, rbZeroForBlack, 2, SpringLayout.SOUTH, lblBinForBlack);
+        layAddInfoCType.putConstraint(SpringLayout.WEST, rbZeroForBlack, 12, SpringLayout.EAST, rbOneForBlack);
         
         /* SECTION - Export Where: */
         layExportWhere.putConstraint(SpringLayout.NORTH, rbClipboard, 6, SpringLayout.NORTH, pnlExportWhere);
@@ -256,42 +351,42 @@ public class ExportWindow extends JFrame {
      * =============================================
      */
     
-//    public static void main(String[] args) {
-//        SwingUtilities.invokeLater(new Runnable() {
-//            @Override
-//            public void run() {
-//                List<ImageAsset> ia = new ArrayList<>();
-//                JFrame main = new JFrame();
-//                SpringLayout sp = new SpringLayout();
-//                main.getContentPane().setLayout(sp);
-//                main.setSize(new Dimension(800, 800));
-//                main.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//                JButton jb = new JButton("Click Me");
-//                jb.addActionListener(new ActionListener() {
-//                    @Override
-//                    public void actionPerformed(ActionEvent e) {
-//                        JOptionPane.showMessageDialog(main, "POPUP!!!");
-//                    }
-//                });
-//                main.getContentPane().add(jb);
-//                
-//                JButton jb2 = new JButton("New Window");
-//                jb2.addActionListener(new ActionListener() {
-//                    @Override
-//                    public void actionPerformed(ActionEvent e) {
-//                        ExportWindow epw = new ExportWindow(ia, main);
-//                        epw.setVisible(true);
-//                    }
-//                });
-//                main.getContentPane().add(jb2);
-//                
-//                sp.putConstraint(SpringLayout.NORTH, jb, 6, SpringLayout.NORTH, main.getContentPane());
-//                sp.putConstraint(SpringLayout.WEST, jb, 6, SpringLayout.WEST, main.getContentPane());
-//                sp.putConstraint(SpringLayout.NORTH, jb2, 6, SpringLayout.SOUTH, jb);
-//                sp.putConstraint(SpringLayout.WEST, jb, 6, SpringLayout.WEST, main.getContentPane());
-//                
-//                main.setVisible(true);
-//            }
-//        });
-//    }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                List<ImageAsset> ia = new ArrayList<>();
+                JFrame main = new JFrame();
+                SpringLayout sp = new SpringLayout();
+                main.getContentPane().setLayout(sp);
+                main.setSize(new Dimension(800, 800));
+                main.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                JButton jb = new JButton("Click Me");
+                jb.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        JOptionPane.showMessageDialog(main, "POPUP!!!");
+                    }
+                });
+                main.getContentPane().add(jb);
+                
+                JButton jb2 = new JButton("New Window");
+                jb2.addActionListener(new ActionListener() {
+                    @Override
+                    public void actionPerformed(ActionEvent e) {
+                        ExportWindow epw = new ExportWindow(ia, main);
+                        epw.setVisible(true);
+                    }
+                });
+                main.getContentPane().add(jb2);
+                
+                sp.putConstraint(SpringLayout.NORTH, jb, 6, SpringLayout.NORTH, main.getContentPane());
+                sp.putConstraint(SpringLayout.WEST, jb, 6, SpringLayout.WEST, main.getContentPane());
+                sp.putConstraint(SpringLayout.NORTH, jb2, 6, SpringLayout.SOUTH, jb);
+                sp.putConstraint(SpringLayout.WEST, jb, 6, SpringLayout.WEST, main.getContentPane());
+                
+                main.setVisible(true);
+            }
+        });
+    }
 }

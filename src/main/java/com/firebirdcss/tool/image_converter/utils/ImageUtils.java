@@ -169,5 +169,42 @@ public class ImageUtils {
         return binImage;
     }
     
+    /**
+     * Converts a binary image to a C-Type Array.
+     * 
+     * @param binImg - The binary image as a 2 dimensional byte array.
+     * @param imageId - The image ID which will be used for naming the Array as {@link String}
+     * @return Returns the result as {@link String}
+     */
+    public static String toCTypeArray(byte[][] binImg, String imageId) {
+        StringBuilder sb = new StringBuilder("unsigned char " + Utils.toSafeCVarName(imageId) + "[] = {\n");
+        for (int y = 0; y < binImg.length; y++) {
+            sb.append("  ");
+            int byteIndex = 0;
+            for (int x = 0; x < binImg[y].length; x++) { // Iterate the row (x) pixels...
+                // Append 0b to byte data...
+                if (x == 0 || x % 8 == 0) { // Prior to byte...
+                    sb.append("0b");
+                }
+                
+                // Append the current image pixel value...
+                sb.append(String.valueOf((int) binImg[y][x]));
+                
+                // Append comma at end of byte...
+                if (x < binImg[y].length - 1 && (x - byteIndex) % 7 == 0 && x % 8 != 0) { // In last of byte position...
+                    sb.append(", ");
+                    byteIndex++;
+                }
+            }
+            
+            if (y < binImg.length - 1) {
+                sb.append(",\n");
+            }
+        }
+        sb.append("\n};");
+        
+        return sb.toString();
+    }
+    
     
 }
