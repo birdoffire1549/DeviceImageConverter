@@ -15,7 +15,6 @@ import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
-import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -40,9 +39,11 @@ import javax.swing.table.TableCellEditor;
 
 import com.firebirdcss.tool.image_converter.AssetManager;
 import com.firebirdcss.tool.image_converter.ImageAsset;
+import com.firebirdcss.tool.image_converter.utils.Utils;
 import com.firebirdcss.tool.image_converter.view.components.Screen;
 
 /**
+ * This class is the code for the Main Window of the application.
  * 
  * @author Scott Griffis
  * <p>
@@ -153,10 +154,8 @@ public class MainWindow extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 try {
-                    JFileChooser fileChooser = new JFileChooser();
-                    int retVal = fileChooser.showOpenDialog(thisWindow);
-                    if (retVal == JFileChooser.APPROVE_OPTION) {
-                        File imageFile = fileChooser.getSelectedFile();
+                    File imageFile = Utils.getChosenFile(thisWindow);
+                    if (imageFile != null) { // File was chosen...
                         ImageAsset asset = new ImageAsset(imageFile);
                         disp.registerItem(asset);
                         new Thread() {

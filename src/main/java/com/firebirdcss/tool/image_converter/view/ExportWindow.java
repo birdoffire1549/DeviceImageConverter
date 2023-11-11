@@ -4,13 +4,11 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.Toolkit;
-import java.awt.datatransfer.Clipboard;
-import java.awt.datatransfer.StringSelection;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EventObject;
 import java.util.List;
@@ -38,6 +36,7 @@ import javax.swing.table.TableCellEditor;
 import com.firebirdcss.tool.image_converter.AssetManager;
 import com.firebirdcss.tool.image_converter.ImageAsset;
 import com.firebirdcss.tool.image_converter.utils.ImageUtils;
+import com.firebirdcss.tool.image_converter.utils.Utils;
 
 public class ExportWindow extends JFrame {
     private static final long serialVersionUID = 1L;
@@ -129,8 +128,9 @@ public class ExportWindow extends JFrame {
         btnExport.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                boolean exportComplete = false;
                 if (rbCTypeArray.isSelected()) {
-                    exportCTypeArray();
+                    exportComplete = exportCTypeArray();
                 } else if (rbJPEGImage.isSelected()) {
                  // FIXME: CODEZ NEEDED!!! TO BE CONTINUED...
                 } else if (rbBinData.isSelected()) {
@@ -139,12 +139,15 @@ public class ExportWindow extends JFrame {
                  // FIXME: CODEZ NEEDED!!! TO BE CONTINUED...
                 }
                 
-                thisWindow.dispatchEvent(new WindowEvent(thisWindow, WindowEvent.WINDOW_CLOSING));
+                // Close the window...
+                if (exportComplete) {
+                    thisWindow.dispatchEvent(new WindowEvent(thisWindow, WindowEvent.WINDOW_CLOSING));
+                }
             }
         });
     }
     
-    private void exportCTypeArray() {
+    private boolean exportCTypeArray() {
         StringBuilder sb = new StringBuilder();
         for (ImageAsset a : am.getAssets()) { // Handle each asset...
             byte[][] binImage = ImageUtils.convertImageToBinary(
@@ -161,15 +164,25 @@ public class ExportWindow extends JFrame {
         
         if (rbClipboard.isSelected()) {
             // Send data to clipboard...
-            Clipboard cb = Toolkit.getDefaultToolkit().getSystemClipboard();
-            StringSelection strSel = new StringSelection(sb.toString());
-            cb.setContents(strSel, null);
+            Utils.persistDataToClipboard(sb.toString());
             
             // Let user know...
             JOptionPane.showMessageDialog(thisWindow, "C-Type Array Code was send to Clipboard.");
+            
+            return true;
         } else if (rbFile.isSelected()) {
-            // FIXME: NEEDZ SOMZ CODEZ!!!
+            try {
+                if (Utils.persistDataToFile(sb.toString(), thisWindow)) { // Data was saved...
+                    JOptionPane.showMessageDialog(thisWindow, "Array data was saved to file.", "Successful", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    return true;
+                }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(thisWindow, "Error saving data:\n\t" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
         }
+        
+        return false;
     }
     
     private void doInitializeElements() {
@@ -229,7 +242,7 @@ public class ExportWindow extends JFrame {
         grpWhereOptions.add(rbClipboard);
         grpWhereOptions.add(rbFile);
         rbClipboard.setSelected(true);
-        rbFile.setEnabled(false); // Feature not yet added!!!
+        rbFile.setEnabled(true);
         
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setTitle("Export Image Assets");
