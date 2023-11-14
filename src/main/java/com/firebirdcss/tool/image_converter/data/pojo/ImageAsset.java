@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter;
+package com.firebirdcss.tool.image_converter.data.pojo;
 
 import java.awt.image.BufferedImage;
 import java.io.File;

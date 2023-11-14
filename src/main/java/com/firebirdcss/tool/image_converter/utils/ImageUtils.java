@@ -99,6 +99,20 @@ public class ImageUtils {
         return target;
     }
     
+    public static String convertToBlockImage(byte[][] binImage, int drawBinValue, String lineTerm) {
+        StringBuilder sb = new StringBuilder();
+        for (int y = 0; y < binImage.length; y ++) {
+            for (int x = 0; x < binImage[y].length; x++) {
+                sb.append(binImage[y][x] == drawBinValue ? (char) 178 : ' ');
+            }
+            if (y < binImage.length - 1) {
+                sb.append(lineTerm);
+            }
+        }
+        
+        return sb.toString();
+    }
+    
     /**
      * This method does the work of converting a given image to a binary image.
      * The result gets returned as a two dimensional byte array where the first
@@ -174,9 +188,11 @@ public class ImageUtils {
      * 
      * @param binImg - The binary image as a 2 dimensional byte array.
      * @param imageId - The image ID which will be used for naming the Array as {@link String}
+     * @param lineTerm - The string to use for line termination as {@link String}
+     * 
      * @return Returns the result as {@link String}
      */
-    public static String toCTypeArray(byte[][] binImg, String imageId) {
+    public static String toCTypeArray(byte[][] binImg, String imageId, String lineTerm) {
         StringBuilder sb = new StringBuilder("unsigned char " + Utils.toSafeCVarName(imageId) + "[] = {\n");
         for (int y = 0; y < binImg.length; y++) {
             sb.append("  ");
@@ -198,13 +214,13 @@ public class ImageUtils {
             }
             
             if (y < binImg.length - 1) {
-                sb.append(",\n");
+                sb.append(",");
+                sb.append(lineTerm);
             }
         }
-        sb.append("\n};");
+        sb.append(lineTerm);
+        sb.append("};");
         
         return sb.toString();
     }
-    
-    
 }

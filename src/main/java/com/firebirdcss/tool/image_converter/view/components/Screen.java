@@ -6,7 +6,7 @@ import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.firebirdcss.tool.image_converter.ImageAsset;
+import com.firebirdcss.tool.image_converter.data.pojo.ImageAsset;
 
 /**
  * 

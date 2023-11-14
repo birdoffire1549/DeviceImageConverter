@@ -37,8 +37,8 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellEditor;
 
-import com.firebirdcss.tool.image_converter.AssetManager;
-import com.firebirdcss.tool.image_converter.ImageAsset;
+import com.firebirdcss.tool.image_converter.data.AssetManager;
+import com.firebirdcss.tool.image_converter.data.pojo.ImageAsset;
 import com.firebirdcss.tool.image_converter.utils.Utils;
 import com.firebirdcss.tool.image_converter.view.components.Screen;
 
@@ -100,7 +100,7 @@ public class MainWindow extends JFrame {
     private JLabel lblBy = new JLabel(" x ");
     private JSpinner spnImageHeight = new JSpinner();
     private JButton btnImgResize = new JButton("Resize");
-    private JLabel lblResizeNote = new JLabel("Note: To keep aspect-ratio set one dimension as desired and the other to '-1'.");
+    private JLabel lblResizeNote = new JLabel("<html>Note: To keep aspect-ratio set one dimension as desired and the other to '-1'.<br>Also, a zero dimension means to keep that dimension original size.</html>");
     private JSeparator sep = new JSeparator();
     private JButton btnImgExport = new JButton("Export");
     private JButton btnImgRemove = new JButton("Remove");
@@ -359,7 +359,7 @@ public class MainWindow extends JFrame {
         selAssetLayout.putConstraint(SpringLayout.WEST, spnImageHeight, 3, SpringLayout.EAST, lblBy);
         selAssetLayout.putConstraint(SpringLayout.NORTH, btnImgResize, 12, SpringLayout.SOUTH, lblXPos);
         selAssetLayout.putConstraint(SpringLayout.WEST, btnImgResize, 12, SpringLayout.EAST, spnImageHeight);
-        selAssetLayout.putConstraint(SpringLayout.NORTH, lblResizeNote, 20, SpringLayout.SOUTH, lblXPos);
+        selAssetLayout.putConstraint(SpringLayout.NORTH, lblResizeNote, 15, SpringLayout.SOUTH, lblXPos);
         selAssetLayout.putConstraint(SpringLayout.WEST, lblResizeNote, 3, SpringLayout.EAST, btnImgResize);
         selAssetLayout.putConstraint(SpringLayout.NORTH, sep, 6, SpringLayout.SOUTH, lblImageSize);
         selAssetLayout.putConstraint(SpringLayout.WEST, sep, 2, SpringLayout.WEST, pnlSelAsset);

@@ -11,7 +11,10 @@ import java.awt.event.WindowEvent;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.EventObject;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
@@ -33,8 +36,11 @@ import javax.swing.event.CellEditorListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 
-import com.firebirdcss.tool.image_converter.AssetManager;
-import com.firebirdcss.tool.image_converter.ImageAsset;
+import com.firebirdcss.tool.image_converter.data.AssetManager;
+import com.firebirdcss.tool.image_converter.data.Settings;
+import com.firebirdcss.tool.image_converter.data.enums.ImageType;
+import com.firebirdcss.tool.image_converter.data.pojo.ImageAsset;
+import com.firebirdcss.tool.image_converter.data.pojo.ImageExportInfo;
 import com.firebirdcss.tool.image_converter.utils.ImageUtils;
 import com.firebirdcss.tool.image_converter.utils.Utils;
 
@@ -71,6 +77,12 @@ public class ExportWindow extends JFrame {
     private ButtonGroup grpBinForBlack = new ButtonGroup();
     private JRadioButton rbOneForBlack = new JRadioButton("0 - White; 1 - Black");
     private JRadioButton rbZeroForBlack = new JRadioButton("0 - Black; 1 - White");
+    private JPanel pnlRowTerm = new JPanel();
+    private SpringLayout layRowTerm = new SpringLayout();
+    private ButtonGroup grpRowTerm = new ButtonGroup();
+    private JRadioButton rbRowTermNL = new JRadioButton("NL (\\n)");
+    private JRadioButton rbRowTermRetNL = new JRadioButton("Ret & NL (\\r\\n)");
+    private JRadioButton rbRowTermNone = new JRadioButton("None");
     
     /* SECTION - Where: */
     private JPanel pnlExportWhere = new JPanel();
@@ -129,26 +141,238 @@ public class ExportWindow extends JFrame {
             @Override
             public void actionPerformed(ActionEvent e) {
                 boolean exportComplete = false;
-                if (rbCTypeArray.isSelected()) {
+                if (rbCTypeArray.isSelected()) { // <------------- rbCTypeArray Selected
                     exportComplete = exportCTypeArray();
-                } else if (rbJPEGImage.isSelected()) {
-                 // FIXME: CODEZ NEEDED!!! TO BE CONTINUED...
-                } else if (rbBinData.isSelected()) {
-                 // FIXME: CODEZ NEEDED!!! TO BE CONTINUED...
-                } else if (rbBlockImage.isSelected()) {
-                 // FIXME: CODEZ NEEDED!!! TO BE CONTINUED...
+                } else if (rbJPEGImage.isSelected()) { // <------- rbJPEGImage Selected
+                    exportComplete = exportJPEGImage();
+                } else if (rbBinData.isSelected()) { // <--------- rbBinData Selected
+                    exportComplete = exportBinData();
+                } else if (rbBlockImage.isSelected()) { // <------ rbBlockImage Selected
+                    exportComplete = exportBlockImage();
                 }
                 
                 // Close the window...
                 if (exportComplete) {
+                    persistSettings();
                     thisWindow.dispatchEvent(new WindowEvent(thisWindow, WindowEvent.WINDOW_CLOSING));
                 }
             }
         });
+        
+        rbCTypeArray.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                pnlAddInfoCType.setVisible(true);
+                pnlRowTerm.setVisible(true);
+                rbRowTermNL.setSelected(true);
+                rbRowTermNone.setVisible(false);
+            }
+        });
+        
+        rbJPEGImage.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                pnlAddInfoCType.setVisible(false);
+                pnlRowTerm.setVisible(false);
+            }
+        });
+        
+        rbBinData.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                pnlAddInfoCType.setVisible(true);
+                pnlRowTerm.setVisible(true);
+                rbRowTermNone.setVisible(true);
+            }
+        });
+        
+        rbBlockImage.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                pnlAddInfoCType.setVisible(true);
+                pnlRowTerm.setVisible(true);
+                rbRowTermNL.setSelected(true);
+                rbRowTermNone.setVisible(false);
+            }
+        });
+    }
+    
+    private boolean exportBlockImage() {
+        Map<String/*ImageId*/, String/*BlockImage*/> data = new HashMap<>();
+        String rowTerm = rbRowTermRetNL.isSelected() ? "\r\n" : "\n";
+        
+        // Transform the data...
+        for (ImageAsset a : am.getAssets()) { // Iterate and transform assets...
+            byte[][] binImage = ImageUtils.convertImageToBinary(
+                a.getScaledImage(), 
+                ((Integer) spnThreshold.getValue()).intValue(), 
+                rbOneForBlack.isSelected() ? 1 : 0, 
+                true, 
+                ((Integer) spnPadValue.getValue()).intValue()
+            );
+            
+            String blockImage = ImageUtils.convertToBlockImage(binImage, 1/*FIXME: USER*/, rowTerm);
+            
+            data.put(a.getId(), blockImage);
+        }
+        
+        // Do the export thing...
+        if (rbClipboard.isSelected()) { // <------------------ To Clipboard
+            StringBuilder allData = new StringBuilder();
+            boolean first = true;
+            for (String s : data.values()) { // Iterate transformed data and prepare for export...
+                if (!first) { // Not the first item...
+                    allData.append(rowTerm);
+                    allData.append(rowTerm);
+                    allData.append(rowTerm);
+                } else { // Is the first item...
+                    first = false;
+                }
+                allData.append(s);
+            }
+            
+            // Export to clipboard and notify user...
+            Utils.persistDataToClipboard(allData.toString());
+            JOptionPane.showMessageDialog(thisWindow, "Block Image Data was send to Clipboard.");
+            
+            return true;
+        } else if (rbFile.isSelected()) { // <----------------- To File
+            Map<String/*FileName*/, String/*Data*/> prepdData = new HashMap<>();
+            data.entrySet().forEach(e -> prepdData.put(e.getKey() + ".txt", e.getValue()));
+            
+            // Send data to file or files and notify user...
+            try {
+                if (Utils.persistDataToFiles(prepdData, thisWindow)) {
+                    JOptionPane.showMessageDialog(thisWindow, "Data was saved to file(s).", "Successful", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    return true;
+                }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(thisWindow, "Error saving data:\n\t" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        
+        return false;
+    }
+    
+    private boolean exportJPEGImage() {
+        if (rbClipboard.isSelected()) {
+            List<ImageAsset> assetList = am.getAssets();
+            for (int i = 0; i < assetList.size(); i ++) {
+                Utils.persistDataToClipboard(assetList.get(i).getScaledImage());
+                if (i < assetList.size() - 1) { // Not last image...
+                    int choice = JOptionPane.showConfirmDialog(
+                        thisWindow, 
+                        "Image was send to Clipboard.\nPlease paste it off somewhere before clicking 'Ok'.\nWhen you are ready for the next image click 'Ok' and it will be placed on the clipboard,\nor 'Cancel' to stop.", 
+                        "Image sent to Clipboard", 
+                        JOptionPane.OK_CANCEL_OPTION, 
+                        JOptionPane.QUESTION_MESSAGE
+                    );
+                    if (choice == JOptionPane.CANCEL_OPTION) {
+                        JOptionPane.showMessageDialog(thisWindow, "Export operation was canceled.", "Export canceled", JOptionPane.WARNING_MESSAGE);
+                        
+                        return false;
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(thisWindow, "Image was sent to Clipboard.", "Image sent to Clipboard", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    return true;
+                }
+            }
+        } else if (rbFile.isSelected()) {
+            List<ImageExportInfo> data = new ArrayList<>();
+            for (ImageAsset a : am.getAssets()) {
+                data.add(new ImageExportInfo(a, ImageType.JPG/*FIXME:!!!*/));
+            }
+            try {
+                if (Utils.persistDataToFiles(data, thisWindow)) {
+                    JOptionPane.showMessageDialog(thisWindow, "Image data was saved to file(s).", "Successful", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    return true;
+                }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(thisWindow, "Error saving Image data:\n\t" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * EXPORT BINARY DATA: This method handles transforming the data for exporting
+     * and then exports the data as needed.
+     * 
+     * @return Return a true if export successful otherwise false as <code>boolean</code>
+     */
+    private boolean exportBinData() {
+        Map<String/*ImageId*/, String/*Data*/> binImages = new HashMap<>();
+        String lineTerm = "";
+        if (rbRowTermNL.isSelected()) {
+            lineTerm = "\n";
+        } else if (rbRowTermRetNL.isSelected()) {
+            lineTerm = "\r\n";
+        }
+        
+        // Transform the data for export...
+        for (ImageAsset a : am.getAssets()) { // Iterate and transform assets...
+            byte[][] binImage = ImageUtils.convertImageToBinary(
+                a.getScaledImage(), 
+                ((Integer) spnThreshold.getValue()).intValue(), 
+                rbOneForBlack.isSelected() ? 1 : 0, 
+                true, 
+                ((Integer) spnPadValue.getValue()).intValue()
+            );
+            // Build binary image into String representation...
+            StringBuilder sb = new StringBuilder();
+            for (int y = 0; y < binImage.length; y++) { // Iterate the binary image rows...
+                for (int x = 0; x < binImage[y].length; x++) { // Iterate binary image columns...
+                    sb.append(String.valueOf(binImage[y][x]));
+                }
+                if (y != binImage.length - 1) { // Row is not the last row...
+                    sb.append(lineTerm);
+                }
+            }
+            
+            binImages.put(a.getId(), sb.toString());
+        }
+        
+        if (rbClipboard.isSelected()) { // <---- Export to Clipboard...
+            StringBuilder sb = new StringBuilder();
+            for (String itm : binImages.values()) { // Put all data together for export...
+                sb.append(itm);
+                sb.append(lineTerm);
+                sb.append(lineTerm);
+                sb.append(lineTerm);
+            }
+            // Send to clipboard and notify user...
+            Utils.persistDataToClipboard(sb.toString());
+            JOptionPane.showMessageDialog(thisWindow, "Binary Image Data was send to Clipboard.");
+            
+            return true;
+        } else if (rbFile.isSelected()) { // <---- Export to file(s)...
+            Map<String/*FileName*/, String/*Data*/> data = new HashMap<>();
+            for (Entry<String, String> e : binImages.entrySet()) { // Modify data for sending...
+                data.put(Utils.toSafeCVarName(e.getKey()) + ".txt", e.getValue());
+            }
+            // Send to file or files and notify the user...
+            try {
+                if (Utils.persistDataToFiles(data, thisWindow)) { 
+                    JOptionPane.showMessageDialog(thisWindow, "Data was saved to file(s).", "Successful", JOptionPane.INFORMATION_MESSAGE);
+                    
+                    return true;
+                }
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(thisWindow, "Error saving data:\n\t" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        
+        return false;
     }
     
     private boolean exportCTypeArray() {
         StringBuilder sb = new StringBuilder();
+        String lineTerm = rbRowTermRetNL.isSelected() ? "\r\n" : "\n";
+        
         for (ImageAsset a : am.getAssets()) { // Handle each asset...
             byte[][] binImage = ImageUtils.convertImageToBinary(
                 a.getScaledImage(), 
@@ -157,9 +381,10 @@ public class ExportWindow extends JFrame {
                 true, 
                 ((Integer) spnPadValue.getValue()).intValue()
             );
-            String array = ImageUtils.toCTypeArray(binImage, a.getId());
+            String array = ImageUtils.toCTypeArray(binImage, a.getId(), lineTerm);
             sb.append(array);
-            sb.append("\n\n");
+            sb.append(lineTerm);
+            sb.append(lineTerm);
         }
         
         if (rbClipboard.isSelected()) {
@@ -222,10 +447,24 @@ public class ExportWindow extends JFrame {
         grpAsOptions.add(rbJPEGImage);
         grpAsOptions.add(rbBinData);
         grpAsOptions.add(rbBlockImage);
-        rbCTypeArray.setSelected(true);
-        rbJPEGImage.setEnabled(false); // Feature not yet added!!!
-        rbBinData.setEnabled(false); // Feature not yet added!!!
-        rbBlockImage.setEnabled(false); // Feature not yet added!!!
+        if (Settings.lastSelectedExportAs == null) {
+            rbCTypeArray.setSelected(true);
+            Settings.lastSelectedExportAs = rbCTypeArray.getModel();
+        } else {
+            grpAsOptions.setSelected(Settings.lastSelectedExportAs, true);
+        }
+        if (Settings.lastBWConversionThresh != -1) {
+            spnThreshold.setValue(Settings.lastBWConversionThresh);
+        } else {
+            spnThreshold.setValue(50);
+            Settings.lastBWConversionThresh = 50;
+        }
+        if (Settings.lastBinPadVal != -1) {
+            spnPadValue.setValue(Settings.lastBinPadVal);
+        } else {
+            spnPadValue.setValue(0);
+            Settings.lastBinPadVal = 0;
+        }
         sepExportAs.setOrientation(SwingConstants.VERTICAL);
         sepExportAs.setForeground(Color.LIGHT_GRAY);
         pnlAddInfoCType.setLayout(layAddInfoCType);
@@ -233,7 +472,25 @@ public class ExportWindow extends JFrame {
         pnlAddInfoCType.setEnabled(true);
         grpBinForBlack.add(rbOneForBlack);
         grpBinForBlack.add(rbZeroForBlack);
-        rbOneForBlack.setSelected(true);
+        if (Settings.lastSelectedBinaryColorRep == null) {
+            rbOneForBlack.setSelected(true);
+            Settings.lastSelectedBinaryColorRep = rbOneForBlack.getModel();
+        } else {
+            grpBinForBlack.setSelected(Settings.lastSelectedBinaryColorRep, true);
+        }
+        pnlRowTerm.setLayout(layRowTerm);
+        pnlRowTerm.setBorder(BorderFactory.createTitledBorder("Row Terminator:"));
+        pnlRowTerm.setVisible(true);
+        rbRowTermNone.setVisible(false);
+        grpRowTerm.add(rbRowTermNL);
+        grpRowTerm.add(rbRowTermRetNL);
+        grpRowTerm.add(rbRowTermNone);
+        if (Settings.lastSelectedRowTerm == null) {
+            rbRowTermNL.setSelected(true);
+            Settings.lastSelectedRowTerm = grpRowTerm.getSelection();
+        } else {
+            grpRowTerm.setSelected(Settings.lastSelectedRowTerm, true);
+        }
         
         /* SECTION - Export Where: */
         pnlExportWhere.setLayout(layExportWhere);
@@ -241,7 +498,12 @@ public class ExportWindow extends JFrame {
         pnlExportWhere.setPreferredSize(new Dimension(700, 90));
         grpWhereOptions.add(rbClipboard);
         grpWhereOptions.add(rbFile);
-        rbClipboard.setSelected(true);
+        if (Settings.lastSelectedExportWhere == null) {
+            rbClipboard.setSelected(true);
+            Settings.lastSelectedExportWhere = rbClipboard.getModel();
+        } else {
+            grpWhereOptions.setSelected(Settings.lastSelectedExportWhere, true);
+        }
         rbFile.setEnabled(true);
         
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -260,6 +522,11 @@ public class ExportWindow extends JFrame {
         pnlExportAs.add(sepExportAs);
         pnlExportAs.add(pnlAddInfoCType);
         
+        /* Row Terminator: */
+        pnlRowTerm.add(rbRowTermNL);
+        pnlRowTerm.add(rbRowTermRetNL);
+        pnlRowTerm.add(rbRowTermNone);
+        
         /* SECTION - Additional Information: */
         pnlAddInfoCType.add(lblConversionThreshold);
         pnlAddInfoCType.add(spnThreshold);
@@ -268,6 +535,7 @@ public class ExportWindow extends JFrame {
         pnlAddInfoCType.add(lblBinForBlack);
         pnlAddInfoCType.add(rbOneForBlack);
         pnlAddInfoCType.add(rbZeroForBlack);
+        pnlAddInfoCType.add(pnlRowTerm);
         
         /* SECTION - Export Where: */
         pnlExportWhere.add(rbClipboard);
@@ -299,6 +567,12 @@ public class ExportWindow extends JFrame {
         layExportAs.putConstraint(SpringLayout.WEST, pnlAddInfoCType, 3, SpringLayout.EAST, sepExportAs);
         layExportAs.putConstraint(SpringLayout.EAST, pnlAddInfoCType, -3, SpringLayout.EAST, pnlExportAs);
         
+        /* Row Terminator */
+        layRowTerm.putConstraint(SpringLayout.NORTH, rbRowTermNL, 2, SpringLayout.NORTH, pnlRowTerm);
+        layRowTerm.putConstraint(SpringLayout.NORTH, rbRowTermRetNL, 2, SpringLayout.SOUTH, rbRowTermNL);
+        layRowTerm.putConstraint(SpringLayout.NORTH, rbRowTermNone, 2, SpringLayout.SOUTH, rbRowTermRetNL);
+        
+        
         /* SECTION - Additional Information: */
         layAddInfoCType.putConstraint(SpringLayout.NORTH, lblConversionThreshold, 6, SpringLayout.NORTH, pnlAddInfoCType);
         layAddInfoCType.putConstraint(SpringLayout.WEST, lblConversionThreshold, 6, SpringLayout.WEST, pnlAddInfoCType);
@@ -314,6 +588,10 @@ public class ExportWindow extends JFrame {
         layAddInfoCType.putConstraint(SpringLayout.WEST, rbOneForBlack, 6, SpringLayout.WEST, pnlAddInfoCType);
         layAddInfoCType.putConstraint(SpringLayout.NORTH, rbZeroForBlack, 2, SpringLayout.SOUTH, lblBinForBlack);
         layAddInfoCType.putConstraint(SpringLayout.WEST, rbZeroForBlack, 12, SpringLayout.EAST, rbOneForBlack);
+        layAddInfoCType.putConstraint(SpringLayout.NORTH, pnlRowTerm, -2, SpringLayout.NORTH, pnlAddInfoCType);
+        layAddInfoCType.putConstraint(SpringLayout.EAST, pnlRowTerm, 0, SpringLayout.EAST, pnlAddInfoCType);
+        layAddInfoCType.putConstraint(SpringLayout.SOUTH, pnlRowTerm, 0, SpringLayout.SOUTH, pnlAddInfoCType);
+        layAddInfoCType.putConstraint(SpringLayout.WEST, pnlRowTerm, -145, SpringLayout.EAST, pnlAddInfoCType);
         
         /* SECTION - Export Where: */
         layExportWhere.putConstraint(SpringLayout.NORTH, rbClipboard, 6, SpringLayout.NORTH, pnlExportWhere);
@@ -356,6 +634,15 @@ public class ExportWindow extends JFrame {
         tModel.setDataVector(am.getData(), am.getHeaders());
         tModel.fireTableDataChanged();
         assetTable.clearSelection();
+    }
+    
+    private void persistSettings() {
+        Settings.lastSelectedExportAs =  grpAsOptions.getSelection();
+        Settings.lastBWConversionThresh = ((Integer) spnThreshold.getValue()).intValue();
+        Settings.lastBinPadVal = ((Integer) spnPadValue.getValue()).intValue();
+        Settings.lastSelectedBinaryColorRep = grpBinForBlack.getSelection();
+        Settings.lastSelectedExportWhere = grpWhereOptions.getSelection();
+        Settings.lastSelectedRowTerm = grpRowTerm.getSelection();
     }
     
     /*
