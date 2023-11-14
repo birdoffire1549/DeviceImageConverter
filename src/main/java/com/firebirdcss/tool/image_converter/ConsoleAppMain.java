@@ -71,9 +71,6 @@ public class ConsoleAppMain {
             BufferedImage bScaledImage = ImageUtils.scaleImage(bStrippedImage, widthAndHeight); 
             System.out.println("Complete.");
             
-            // FIXME:DELETE ME BELOW
-//            displayImageInScreenGui(bScaledImage, 128, 64);
-            
             // Obtain Threshold and desired black binary value...
             int threshold = getThreshold(sc);
             int blkBinValue = getBlackBinaryValue(sc);
