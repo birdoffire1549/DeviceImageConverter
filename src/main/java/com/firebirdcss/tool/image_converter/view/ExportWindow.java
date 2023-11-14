@@ -31,7 +31,6 @@ import javax.swing.JTable;
 import javax.swing.SpinnerNumberModel;
 import javax.swing.SpringLayout;
 import javax.swing.SwingConstants;
-import javax.swing.SwingUtilities;
 import javax.swing.event.CellEditorListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
@@ -65,7 +64,6 @@ public class ExportWindow extends JFrame {
     private JRadioButton rbCTypeArray = new JRadioButton("C-Type Binary Array");
     private JRadioButton rbJPEGImage = new JRadioButton("Scaled JPEG Image");
     private JRadioButton rbBinData = new JRadioButton("Binary Data");
-    private JRadioButton rbBlockImage = new JRadioButton("Block Image");
     private JSeparator sepExportAs = new JSeparator();
     private JPanel pnlAddInfoCType = new JPanel();
     private SpringLayout layAddInfoCType = new SpringLayout();
@@ -147,8 +145,6 @@ public class ExportWindow extends JFrame {
                     exportComplete = exportJPEGImage();
                 } else if (rbBinData.isSelected()) { // <--------- rbBinData Selected
                     exportComplete = exportBinData();
-                } else if (rbBlockImage.isSelected()) { // <------ rbBlockImage Selected
-                    exportComplete = exportBlockImage();
                 }
                 
                 // Close the window...
@@ -162,6 +158,7 @@ public class ExportWindow extends JFrame {
         rbCTypeArray.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                rbOneForBlack.isSelected();
                 pnlAddInfoCType.setVisible(true);
                 pnlRowTerm.setVisible(true);
                 rbRowTermNL.setSelected(true);
@@ -180,79 +177,12 @@ public class ExportWindow extends JFrame {
         rbBinData.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                rbOneForBlack.isSelected();
                 pnlAddInfoCType.setVisible(true);
                 pnlRowTerm.setVisible(true);
                 rbRowTermNone.setVisible(true);
             }
         });
-        
-        rbBlockImage.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                pnlAddInfoCType.setVisible(true);
-                pnlRowTerm.setVisible(true);
-                rbRowTermNL.setSelected(true);
-                rbRowTermNone.setVisible(false);
-            }
-        });
-    }
-    
-    private boolean exportBlockImage() {
-        Map<String/*ImageId*/, String/*BlockImage*/> data = new HashMap<>();
-        String rowTerm = rbRowTermRetNL.isSelected() ? "\r\n" : "\n";
-        
-        // Transform the data...
-        for (ImageAsset a : am.getAssets()) { // Iterate and transform assets...
-            byte[][] binImage = ImageUtils.convertImageToBinary(
-                a.getScaledImage(), 
-                ((Integer) spnThreshold.getValue()).intValue(), 
-                rbOneForBlack.isSelected() ? 1 : 0, 
-                true, 
-                ((Integer) spnPadValue.getValue()).intValue()
-            );
-            
-            String blockImage = ImageUtils.convertToBlockImage(binImage, 1/*FIXME: USER*/, rowTerm);
-            
-            data.put(a.getId(), blockImage);
-        }
-        
-        // Do the export thing...
-        if (rbClipboard.isSelected()) { // <------------------ To Clipboard
-            StringBuilder allData = new StringBuilder();
-            boolean first = true;
-            for (String s : data.values()) { // Iterate transformed data and prepare for export...
-                if (!first) { // Not the first item...
-                    allData.append(rowTerm);
-                    allData.append(rowTerm);
-                    allData.append(rowTerm);
-                } else { // Is the first item...
-                    first = false;
-                }
-                allData.append(s);
-            }
-            
-            // Export to clipboard and notify user...
-            Utils.persistDataToClipboard(allData.toString());
-            JOptionPane.showMessageDialog(thisWindow, "Block Image Data was send to Clipboard.");
-            
-            return true;
-        } else if (rbFile.isSelected()) { // <----------------- To File
-            Map<String/*FileName*/, String/*Data*/> prepdData = new HashMap<>();
-            data.entrySet().forEach(e -> prepdData.put(e.getKey() + ".txt", e.getValue()));
-            
-            // Send data to file or files and notify user...
-            try {
-                if (Utils.persistDataToFiles(prepdData, thisWindow)) {
-                    JOptionPane.showMessageDialog(thisWindow, "Data was saved to file(s).", "Successful", JOptionPane.INFORMATION_MESSAGE);
-                    
-                    return true;
-                }
-            } catch (IOException e) {
-                JOptionPane.showMessageDialog(thisWindow, "Error saving data:\n\t" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        }
-        
-        return false;
     }
     
     private boolean exportJPEGImage() {
@@ -446,12 +376,23 @@ public class ExportWindow extends JFrame {
         grpAsOptions.add(rbCTypeArray);
         grpAsOptions.add(rbJPEGImage);
         grpAsOptions.add(rbBinData);
-        grpAsOptions.add(rbBlockImage);
-        if (Settings.lastSelectedExportAs == null) {
+        if (Settings.lastSelectedExportAs == -1) {
             rbCTypeArray.setSelected(true);
-            Settings.lastSelectedExportAs = rbCTypeArray.getModel();
+            Settings.lastSelectedExportAs = 0;
         } else {
-            grpAsOptions.setSelected(Settings.lastSelectedExportAs, true);
+            switch(Settings.lastSelectedExportAs) {
+                case 0:
+                    rbCTypeArray.setSelected(true);
+                    break;
+                case 1:
+                    rbJPEGImage.setSelected(true);
+                    break;
+                case 2:
+                    rbBinData.setSelected(true);
+                    break;
+                default:
+                    break;
+            }
         }
         if (Settings.lastBWConversionThresh != -1) {
             spnThreshold.setValue(Settings.lastBWConversionThresh);
@@ -472,11 +413,20 @@ public class ExportWindow extends JFrame {
         pnlAddInfoCType.setEnabled(true);
         grpBinForBlack.add(rbOneForBlack);
         grpBinForBlack.add(rbZeroForBlack);
-        if (Settings.lastSelectedBinaryColorRep == null) {
+        if (Settings.lastSelectedBinaryColorRep == -1) {
             rbOneForBlack.setSelected(true);
-            Settings.lastSelectedBinaryColorRep = rbOneForBlack.getModel();
+            Settings.lastSelectedBinaryColorRep = 0;
         } else {
-            grpBinForBlack.setSelected(Settings.lastSelectedBinaryColorRep, true);
+            switch(Settings.lastSelectedBinaryColorRep) {
+                case 0:
+                    rbOneForBlack.setSelected(true);
+                    break;
+                case 1:
+                    rbZeroForBlack.setSelected(true);
+                    break;
+                default:
+                    break;
+            }
         }
         pnlRowTerm.setLayout(layRowTerm);
         pnlRowTerm.setBorder(BorderFactory.createTitledBorder("Row Terminator:"));
@@ -485,11 +435,23 @@ public class ExportWindow extends JFrame {
         grpRowTerm.add(rbRowTermNL);
         grpRowTerm.add(rbRowTermRetNL);
         grpRowTerm.add(rbRowTermNone);
-        if (Settings.lastSelectedRowTerm == null) {
+        if (Settings.lastSelectedRowTerm == -1) {
             rbRowTermNL.setSelected(true);
-            Settings.lastSelectedRowTerm = grpRowTerm.getSelection();
+            Settings.lastSelectedRowTerm = 0;
         } else {
-            grpRowTerm.setSelected(Settings.lastSelectedRowTerm, true);
+            switch(Settings.lastSelectedRowTerm) {
+                case 0:
+                    rbRowTermNL.setSelected(true);
+                    break;
+                case 1:
+                    rbRowTermRetNL.setSelected(true);
+                    break;
+                case 2:
+                    rbRowTermNone.setSelected(true);
+                    break;
+                default:
+                    break;
+            }
         }
         
         /* SECTION - Export Where: */
@@ -498,11 +460,20 @@ public class ExportWindow extends JFrame {
         pnlExportWhere.setPreferredSize(new Dimension(700, 90));
         grpWhereOptions.add(rbClipboard);
         grpWhereOptions.add(rbFile);
-        if (Settings.lastSelectedExportWhere == null) {
+        if (Settings.lastSelectedExportWhere == -1) {
             rbClipboard.setSelected(true);
-            Settings.lastSelectedExportWhere = rbClipboard.getModel();
+            Settings.lastSelectedExportWhere = 0;
         } else {
-            grpWhereOptions.setSelected(Settings.lastSelectedExportWhere, true);
+            switch(Settings.lastSelectedExportWhere) {
+                case 0:
+                    rbClipboard.setSelected(true);
+                    break;
+                case 1:
+                    rbFile.setSelected(true);
+                    break;
+                default:
+                    break;
+            }
         }
         rbFile.setEnabled(true);
         
@@ -518,7 +489,6 @@ public class ExportWindow extends JFrame {
         pnlExportAs.add(rbCTypeArray);
         pnlExportAs.add(rbJPEGImage);
         pnlExportAs.add(rbBinData);
-        pnlExportAs.add(rbBlockImage);
         pnlExportAs.add(sepExportAs);
         pnlExportAs.add(pnlAddInfoCType);
         
@@ -557,8 +527,6 @@ public class ExportWindow extends JFrame {
         layExportAs.putConstraint(SpringLayout.WEST, rbJPEGImage, 12, SpringLayout.WEST, pnlExportAs);
         layExportAs.putConstraint(SpringLayout.NORTH, rbBinData, 6, SpringLayout.SOUTH, rbJPEGImage);
         layExportAs.putConstraint(SpringLayout.WEST, rbBinData, 12, SpringLayout.WEST, pnlExportAs);
-        layExportAs.putConstraint(SpringLayout.NORTH, rbBlockImage, 6, SpringLayout.SOUTH, rbBinData);
-        layExportAs.putConstraint(SpringLayout.WEST, rbBlockImage, 12, SpringLayout.WEST, pnlExportAs);
         layExportAs.putConstraint(SpringLayout.NORTH, sepExportAs, 3, SpringLayout.NORTH, pnlExportAs);
         layExportAs.putConstraint(SpringLayout.SOUTH, sepExportAs, -3, SpringLayout.SOUTH, pnlExportAs);
         layExportAs.putConstraint(SpringLayout.WEST, sepExportAs, 12, SpringLayout.EAST, rbCTypeArray);
@@ -637,12 +605,36 @@ public class ExportWindow extends JFrame {
     }
     
     private void persistSettings() {
-        Settings.lastSelectedExportAs =  grpAsOptions.getSelection();
+        if (rbCTypeArray.isSelected()) {
+            Settings.lastSelectedExportAs = 0;
+        } else if (rbJPEGImage.isSelected()) {
+            Settings.lastSelectedExportAs = 1;
+        } else if (rbBinData.isSelected()) {
+            Settings.lastSelectedExportAs = 2;
+        }
+        
         Settings.lastBWConversionThresh = ((Integer) spnThreshold.getValue()).intValue();
         Settings.lastBinPadVal = ((Integer) spnPadValue.getValue()).intValue();
-        Settings.lastSelectedBinaryColorRep = grpBinForBlack.getSelection();
-        Settings.lastSelectedExportWhere = grpWhereOptions.getSelection();
-        Settings.lastSelectedRowTerm = grpRowTerm.getSelection();
+        
+        if (rbOneForBlack.isSelected()) {
+            Settings.lastSelectedBinaryColorRep = 0;
+        } else if (rbZeroForBlack.isSelected()) {
+            Settings.lastSelectedBinaryColorRep = 1;
+        }
+        
+        if (rbClipboard.isSelected()) {
+            Settings.lastSelectedExportWhere = 0;
+        } else if (rbFile.isSelected()) {
+            Settings.lastSelectedExportWhere = 1;
+        }
+        
+        if (rbRowTermNL.isSelected()) {
+            Settings.lastSelectedRowTerm = 0;
+        } else if (rbRowTermRetNL.isSelected()) {
+            Settings.lastSelectedRowTerm = 1;
+        } else if (rbRowTermNone.isSelected()) {
+            Settings.lastSelectedRowTerm = 2;
+        }
     }
     
     /*
@@ -651,42 +643,42 @@ public class ExportWindow extends JFrame {
      * =============================================
      */
     
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                List<ImageAsset> ia = new ArrayList<>();
-                JFrame main = new JFrame();
-                SpringLayout sp = new SpringLayout();
-                main.getContentPane().setLayout(sp);
-                main.setSize(new Dimension(800, 800));
-                main.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                JButton jb = new JButton("Click Me");
-                jb.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        JOptionPane.showMessageDialog(main, "POPUP!!!");
-                    }
-                });
-                main.getContentPane().add(jb);
-                
-                JButton jb2 = new JButton("New Window");
-                jb2.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        ExportWindow epw = new ExportWindow(ia, main);
-                        epw.setVisible(true);
-                    }
-                });
-                main.getContentPane().add(jb2);
-                
-                sp.putConstraint(SpringLayout.NORTH, jb, 6, SpringLayout.NORTH, main.getContentPane());
-                sp.putConstraint(SpringLayout.WEST, jb, 6, SpringLayout.WEST, main.getContentPane());
-                sp.putConstraint(SpringLayout.NORTH, jb2, 6, SpringLayout.SOUTH, jb);
-                sp.putConstraint(SpringLayout.WEST, jb, 6, SpringLayout.WEST, main.getContentPane());
-                
-                main.setVisible(true);
-            }
-        });
-    }
+//    public static void main(String[] args) {
+//        SwingUtilities.invokeLater(new Runnable() {
+//            @Override
+//            public void run() {
+//                List<ImageAsset> ia = new ArrayList<>();
+//                JFrame main = new JFrame();
+//                SpringLayout sp = new SpringLayout();
+//                main.getContentPane().setLayout(sp);
+//                main.setSize(new Dimension(800, 800));
+//                main.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//                JButton jb = new JButton("Click Me");
+//                jb.addActionListener(new ActionListener() {
+//                    @Override
+//                    public void actionPerformed(ActionEvent e) {
+//                        JOptionPane.showMessageDialog(main, "POPUP!!!");
+//                    }
+//                });
+//                main.getContentPane().add(jb);
+//                
+//                JButton jb2 = new JButton("New Window");
+//                jb2.addActionListener(new ActionListener() {
+//                    @Override
+//                    public void actionPerformed(ActionEvent e) {
+//                        ExportWindow epw = new ExportWindow(ia, main);
+//                        epw.setVisible(true);
+//                    }
+//                });
+//                main.getContentPane().add(jb2);
+//                
+//                sp.putConstraint(SpringLayout.NORTH, jb, 6, SpringLayout.NORTH, main.getContentPane());
+//                sp.putConstraint(SpringLayout.WEST, jb, 6, SpringLayout.WEST, main.getContentPane());
+//                sp.putConstraint(SpringLayout.NORTH, jb2, 6, SpringLayout.SOUTH, jb);
+//                sp.putConstraint(SpringLayout.WEST, jb, 6, SpringLayout.WEST, main.getContentPane());
+//                
+//                main.setVisible(true);
+//            }
+//        });
+//    }
 }
