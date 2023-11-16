@@ -47,11 +47,11 @@ public class ImageExportInfo {
     
     public String getFileName() {
         
-        return Utils.toSafeCVarName(imageId) + outputType.toString();
+        return Utils.toSafeCVarName(imageId) + "." + outputType.toString();
     }
     
     public File getFile(String directoryPath) {
         
-        return new File(directoryPath + File.pathSeparator + getFileName());
+        return new File(directoryPath + File.separator + getFileName());
     }
 }

@@ -23,4 +23,6 @@ public class Settings {
     public static int lastBWConversionThresh = -1;
     public static int lastBinPadVal = -1;
     
+    public static String lastSelectedImageExportType = "";
+    
 }

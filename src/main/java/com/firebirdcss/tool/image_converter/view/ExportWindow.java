@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import javax.swing.BorderFactory;
 import javax.swing.ButtonGroup;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -62,7 +63,7 @@ public class ExportWindow extends JFrame {
     private SpringLayout layExportAs = new SpringLayout();
     private ButtonGroup grpAsOptions = new ButtonGroup();
     private JRadioButton rbCTypeArray = new JRadioButton("C-Type Binary Array");
-    private JRadioButton rbJPEGImage = new JRadioButton("Scaled JPEG Image");
+    private JRadioButton rbScaledImage = new JRadioButton("Scaled Image");
     private JRadioButton rbBinData = new JRadioButton("Binary Data");
     private JSeparator sepExportAs = new JSeparator();
     private JPanel pnlAddInfoCType = new JPanel();
@@ -81,6 +82,10 @@ public class ExportWindow extends JFrame {
     private JRadioButton rbRowTermNL = new JRadioButton("NL (\\n)");
     private JRadioButton rbRowTermRetNL = new JRadioButton("Ret & NL (\\r\\n)");
     private JRadioButton rbRowTermNone = new JRadioButton("None");
+    private JPanel pnlAddInfoScaledImage = new JPanel();
+    private SpringLayout layAddInfoScaledImage = new SpringLayout();
+    private JLabel lblSelectExportType = new JLabel("Select image export type:");
+    private JComboBox<String> cboImageType = new JComboBox<>(ImageType.getSystemSupportedTypeStrings());
     
     /* SECTION - Where: */
     private JPanel pnlExportWhere = new JPanel();
@@ -141,8 +146,8 @@ public class ExportWindow extends JFrame {
                 boolean exportComplete = false;
                 if (rbCTypeArray.isSelected()) { // <------------- rbCTypeArray Selected
                     exportComplete = exportCTypeArray();
-                } else if (rbJPEGImage.isSelected()) { // <------- rbJPEGImage Selected
-                    exportComplete = exportJPEGImage();
+                } else if (rbScaledImage.isSelected()) { // <------- rbScaledImage Selected
+                    exportComplete = exportScaledImage();
                 } else if (rbBinData.isSelected()) { // <--------- rbBinData Selected
                     exportComplete = exportBinData();
                 }
@@ -163,14 +168,20 @@ public class ExportWindow extends JFrame {
                 pnlRowTerm.setVisible(true);
                 rbRowTermNL.setSelected(true);
                 rbRowTermNone.setVisible(false);
+                pnlAddInfoScaledImage.setVisible(false);
             }
         });
         
-        rbJPEGImage.addActionListener(new ActionListener() {
+        rbScaledImage.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 pnlAddInfoCType.setVisible(false);
                 pnlRowTerm.setVisible(false);
+                if (rbFile.isSelected()) {
+                    pnlAddInfoScaledImage.setVisible(true);
+                } else {
+                    pnlAddInfoScaledImage.setVisible(false);
+                }
             }
         });
         
@@ -181,11 +192,30 @@ public class ExportWindow extends JFrame {
                 pnlAddInfoCType.setVisible(true);
                 pnlRowTerm.setVisible(true);
                 rbRowTermNone.setVisible(true);
+                pnlAddInfoScaledImage.setVisible(false);
+            }
+        });
+        
+        rbClipboard.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (rbScaledImage.isSelected()) {
+                    pnlAddInfoScaledImage.setVisible(false);
+                }
+            }
+        });
+        
+        rbFile.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                if (rbScaledImage.isSelected()) {
+                    pnlAddInfoScaledImage.setVisible(true);
+                }
             }
         });
     }
     
-    private boolean exportJPEGImage() {
+    private boolean exportScaledImage() {
         if (rbClipboard.isSelected()) {
             List<ImageAsset> assetList = am.getAssets();
             for (int i = 0; i < assetList.size(); i ++) {
@@ -212,7 +242,9 @@ public class ExportWindow extends JFrame {
         } else if (rbFile.isSelected()) {
             List<ImageExportInfo> data = new ArrayList<>();
             for (ImageAsset a : am.getAssets()) {
-                data.add(new ImageExportInfo(a, ImageType.JPG/*FIXME:!!!*/));
+                String strExportType = (String) cboImageType.getSelectedItem();
+                ImageType exportType = ImageType.getEnumByValue(strExportType);
+                data.add(new ImageExportInfo(a, exportType));
             }
             try {
                 if (Utils.persistDataToFiles(data, thisWindow)) {
@@ -374,7 +406,7 @@ public class ExportWindow extends JFrame {
         pnlExportAs.setBorder(BorderFactory.createTitledBorder("Export As:"));
         pnlExportAs.setPreferredSize(new Dimension(700, 150));
         grpAsOptions.add(rbCTypeArray);
-        grpAsOptions.add(rbJPEGImage);
+        grpAsOptions.add(rbScaledImage);
         grpAsOptions.add(rbBinData);
         if (Settings.lastSelectedExportAs == -1) {
             rbCTypeArray.setSelected(true);
@@ -385,7 +417,7 @@ public class ExportWindow extends JFrame {
                     rbCTypeArray.setSelected(true);
                     break;
                 case 1:
-                    rbJPEGImage.setSelected(true);
+                    rbScaledImage.setSelected(true);
                     break;
                 case 2:
                     rbBinData.setSelected(true);
@@ -411,8 +443,7 @@ public class ExportWindow extends JFrame {
         pnlAddInfoCType.setLayout(layAddInfoCType);
         pnlAddInfoCType.setBorder(BorderFactory.createTitledBorder("Additional Information:"));
         pnlAddInfoCType.setEnabled(true);
-        grpBinForBlack.add(rbOneForBlack);
-        grpBinForBlack.add(rbZeroForBlack);
+        
         if (Settings.lastSelectedBinaryColorRep == -1) {
             rbOneForBlack.setSelected(true);
             Settings.lastSelectedBinaryColorRep = 0;
@@ -432,9 +463,7 @@ public class ExportWindow extends JFrame {
         pnlRowTerm.setBorder(BorderFactory.createTitledBorder("Row Terminator:"));
         pnlRowTerm.setVisible(true);
         rbRowTermNone.setVisible(false);
-        grpRowTerm.add(rbRowTermNL);
-        grpRowTerm.add(rbRowTermRetNL);
-        grpRowTerm.add(rbRowTermNone);
+        
         if (Settings.lastSelectedRowTerm == -1) {
             rbRowTermNL.setSelected(true);
             Settings.lastSelectedRowTerm = 0;
@@ -454,12 +483,21 @@ public class ExportWindow extends JFrame {
             }
         }
         
+        pnlAddInfoScaledImage.setLayout(layAddInfoScaledImage);
+        pnlAddInfoScaledImage.setBorder(BorderFactory.createTitledBorder("Additional Information:"));
+        pnlAddInfoScaledImage.setVisible(false);
+        if (Settings.lastSelectedImageExportType.isEmpty()) {
+            cboImageType.setSelectedItem(ImageType.JPG.toString());
+            Settings.lastSelectedImageExportType = ImageType.JPG.toString();
+        } else {
+            cboImageType.setSelectedItem(Settings.lastSelectedImageExportType);
+        }
+        
         /* SECTION - Export Where: */
         pnlExportWhere.setLayout(layExportWhere);
         pnlExportWhere.setBorder(BorderFactory.createTitledBorder("Export Where:"));
         pnlExportWhere.setPreferredSize(new Dimension(700, 90));
-        grpWhereOptions.add(rbClipboard);
-        grpWhereOptions.add(rbFile);
+        
         if (Settings.lastSelectedExportWhere == -1) {
             rbClipboard.setSelected(true);
             Settings.lastSelectedExportWhere = 0;
@@ -477,6 +515,14 @@ public class ExportWindow extends JFrame {
         }
         rbFile.setEnabled(true);
         
+        if (rbFile.isSelected() && rbScaledImage.isSelected()) {
+            pnlAddInfoScaledImage.setVisible(true);
+            pnlAddInfoCType.setVisible(false);
+        } else if (rbCTypeArray.isSelected() || rbBinData.isSelected()) {
+            pnlAddInfoCType.setVisible(true);
+            pnlAddInfoScaledImage.setVisible(false);
+        }
+        
         this.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         this.setTitle("Export Image Assets");
         this.setPreferredSize(new Dimension(getContentWidth(), getContentHeight()));
@@ -485,12 +531,22 @@ public class ExportWindow extends JFrame {
     }
     
     private void doAddComponentsToContainers() {
+        /* BUTTON GROUPS */
+        grpBinForBlack.add(rbOneForBlack);
+        grpBinForBlack.add(rbZeroForBlack);
+        grpRowTerm.add(rbRowTermNL);
+        grpRowTerm.add(rbRowTermRetNL);
+        grpRowTerm.add(rbRowTermNone);
+        grpWhereOptions.add(rbClipboard);
+        grpWhereOptions.add(rbFile);
+        
         /* SECTION - Export As: */
         pnlExportAs.add(rbCTypeArray);
-        pnlExportAs.add(rbJPEGImage);
+        pnlExportAs.add(rbScaledImage);
         pnlExportAs.add(rbBinData);
         pnlExportAs.add(sepExportAs);
         pnlExportAs.add(pnlAddInfoCType);
+        pnlExportAs.add(pnlAddInfoScaledImage);
         
         /* Row Terminator: */
         pnlRowTerm.add(rbRowTermNL);
@@ -506,6 +562,10 @@ public class ExportWindow extends JFrame {
         pnlAddInfoCType.add(rbOneForBlack);
         pnlAddInfoCType.add(rbZeroForBlack);
         pnlAddInfoCType.add(pnlRowTerm);
+        
+        /* SECTION - Additional Information: (pnlAddInfoScaledImage) */
+        pnlAddInfoScaledImage.add(lblSelectExportType);
+        pnlAddInfoScaledImage.add(cboImageType);
         
         /* SECTION - Export Where: */
         pnlExportWhere.add(rbClipboard);
@@ -523,9 +583,9 @@ public class ExportWindow extends JFrame {
         /* SECTION - Export As: */
         layExportAs.putConstraint(SpringLayout.NORTH, rbCTypeArray, 6, SpringLayout.NORTH, pnlExportAs);
         layExportAs.putConstraint(SpringLayout.WEST, rbCTypeArray, 12, SpringLayout.WEST, pnlExportAs);
-        layExportAs.putConstraint(SpringLayout.NORTH, rbJPEGImage, 6, SpringLayout.SOUTH, rbCTypeArray);
-        layExportAs.putConstraint(SpringLayout.WEST, rbJPEGImage, 12, SpringLayout.WEST, pnlExportAs);
-        layExportAs.putConstraint(SpringLayout.NORTH, rbBinData, 6, SpringLayout.SOUTH, rbJPEGImage);
+        layExportAs.putConstraint(SpringLayout.NORTH, rbScaledImage, 6, SpringLayout.SOUTH, rbCTypeArray);
+        layExportAs.putConstraint(SpringLayout.WEST, rbScaledImage, 12, SpringLayout.WEST, pnlExportAs);
+        layExportAs.putConstraint(SpringLayout.NORTH, rbBinData, 6, SpringLayout.SOUTH, rbScaledImage);
         layExportAs.putConstraint(SpringLayout.WEST, rbBinData, 12, SpringLayout.WEST, pnlExportAs);
         layExportAs.putConstraint(SpringLayout.NORTH, sepExportAs, 3, SpringLayout.NORTH, pnlExportAs);
         layExportAs.putConstraint(SpringLayout.SOUTH, sepExportAs, -3, SpringLayout.SOUTH, pnlExportAs);
@@ -534,6 +594,10 @@ public class ExportWindow extends JFrame {
         layExportAs.putConstraint(SpringLayout.SOUTH, pnlAddInfoCType, -3, SpringLayout.SOUTH, pnlExportAs);
         layExportAs.putConstraint(SpringLayout.WEST, pnlAddInfoCType, 3, SpringLayout.EAST, sepExportAs);
         layExportAs.putConstraint(SpringLayout.EAST, pnlAddInfoCType, -3, SpringLayout.EAST, pnlExportAs);
+        layExportAs.putConstraint(SpringLayout.NORTH, pnlAddInfoScaledImage, 3, SpringLayout.NORTH, pnlExportAs);
+        layExportAs.putConstraint(SpringLayout.SOUTH, pnlAddInfoScaledImage, -3, SpringLayout.SOUTH, pnlExportAs);
+        layExportAs.putConstraint(SpringLayout.WEST, pnlAddInfoScaledImage, 3, SpringLayout.EAST, sepExportAs);
+        layExportAs.putConstraint(SpringLayout.EAST, pnlAddInfoScaledImage, -3, SpringLayout.EAST, pnlExportAs);
         
         /* Row Terminator */
         layRowTerm.putConstraint(SpringLayout.NORTH, rbRowTermNL, 2, SpringLayout.NORTH, pnlRowTerm);
@@ -560,6 +624,12 @@ public class ExportWindow extends JFrame {
         layAddInfoCType.putConstraint(SpringLayout.EAST, pnlRowTerm, 0, SpringLayout.EAST, pnlAddInfoCType);
         layAddInfoCType.putConstraint(SpringLayout.SOUTH, pnlRowTerm, 0, SpringLayout.SOUTH, pnlAddInfoCType);
         layAddInfoCType.putConstraint(SpringLayout.WEST, pnlRowTerm, -145, SpringLayout.EAST, pnlAddInfoCType);
+        
+        /* SECTION - Additional Information: (pnlAddInfoScaledImage) */
+        layAddInfoScaledImage.putConstraint(SpringLayout.NORTH, lblSelectExportType, 20, SpringLayout.NORTH, pnlAddInfoScaledImage);
+        layAddInfoScaledImage.putConstraint(SpringLayout.WEST, lblSelectExportType, 30, SpringLayout.WEST, pnlAddInfoScaledImage);
+        layAddInfoScaledImage.putConstraint(SpringLayout.NORTH, cboImageType, 6, SpringLayout.SOUTH, lblSelectExportType);
+        layAddInfoScaledImage.putConstraint(SpringLayout.WEST, cboImageType, 30, SpringLayout.WEST, pnlAddInfoScaledImage);
         
         /* SECTION - Export Where: */
         layExportWhere.putConstraint(SpringLayout.NORTH, rbClipboard, 6, SpringLayout.NORTH, pnlExportWhere);
@@ -602,12 +672,17 @@ public class ExportWindow extends JFrame {
         tModel.setDataVector(am.getData(), am.getHeaders());
         tModel.fireTableDataChanged();
         assetTable.clearSelection();
+        assetTable.getColumnModel().getColumn(0).setPreferredWidth(400);
+        assetTable.getColumnModel().getColumn(1).setPreferredWidth(20);
+        assetTable.getColumnModel().getColumn(2).setPreferredWidth(20);
+        assetTable.getColumnModel().getColumn(3).setPreferredWidth(20);
+        assetTable.getColumnModel().getColumn(4).setPreferredWidth(20);
     }
     
     private void persistSettings() {
         if (rbCTypeArray.isSelected()) {
             Settings.lastSelectedExportAs = 0;
-        } else if (rbJPEGImage.isSelected()) {
+        } else if (rbScaledImage.isSelected()) {
             Settings.lastSelectedExportAs = 1;
         } else if (rbBinData.isSelected()) {
             Settings.lastSelectedExportAs = 2;
@@ -615,6 +690,7 @@ public class ExportWindow extends JFrame {
         
         Settings.lastBWConversionThresh = ((Integer) spnThreshold.getValue()).intValue();
         Settings.lastBinPadVal = ((Integer) spnPadValue.getValue()).intValue();
+        Settings.lastSelectedImageExportType = cboImageType.getSelectedItem().toString();
         
         if (rbOneForBlack.isSelected()) {
             Settings.lastSelectedBinaryColorRep = 0;

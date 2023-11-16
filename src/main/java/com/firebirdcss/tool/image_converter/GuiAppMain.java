@@ -5,6 +5,8 @@ import javax.swing.SwingUtilities;
 import com.firebirdcss.tool.image_converter.view.MainWindow;
 
 /**
+ * Main Entry point for the Application.
+ * Creates the MainWindow and then hands over execution to it.
  * 
  * @author Scott Griffis
  * <p>

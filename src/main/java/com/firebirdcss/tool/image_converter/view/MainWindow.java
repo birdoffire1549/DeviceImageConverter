@@ -39,6 +39,9 @@ import javax.swing.table.TableCellEditor;
 
 import com.firebirdcss.tool.image_converter.data.AssetManager;
 import com.firebirdcss.tool.image_converter.data.pojo.ImageAsset;
+import com.firebirdcss.tool.image_converter.listeners.ButtonOnEnterKeyListener;
+import com.firebirdcss.tool.image_converter.listeners.SelectOnFocusListener;
+import com.firebirdcss.tool.image_converter.listeners.ThreadedActionListener;
 import com.firebirdcss.tool.image_converter.utils.Utils;
 import com.firebirdcss.tool.image_converter.view.components.Screen;
 
@@ -106,8 +109,6 @@ public class MainWindow extends JFrame {
     private JButton btnImgRemove = new JButton("Remove");
     private SpringLayout selAssetLayout = new SpringLayout();
     
-    
-    
     /**
      * CONSTRUCTOR: The class constructor. This is where this object gets
      * initialized. 
@@ -132,27 +133,38 @@ public class MainWindow extends JFrame {
      * assigned for use by various parts of the window's interface.
      */
     private void doAddActionListeners() {
+        /* SPINNER Width - width */
+        SelectOnFocusListener.addListenerTo(width);
+        ButtonOnEnterKeyListener.addListenerTo(width, btnDispUpdate);
+        
+        /* SPINNER Height - height */
+        SelectOnFocusListener.addListenerTo(height);
+        ButtonOnEnterKeyListener.addListenerTo(height, btnDispUpdate);
+        
         /* BUTTON: btnDispUpdate (Update) */
+        SelectOnFocusListener.addListenerTo(btnDispUpdate);
+        btnDispUpdate.addFocusListener(new SelectOnFocusListener(btnDispUpdate));
         btnDispUpdate.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                disp.setSize((Integer) width.getValue(), (Integer) height.getValue());
-                new Thread() {
+                SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
+                        disp.setSize(((Integer) width.getValue()).intValue(), ((Integer) height.getValue()).intValue());
                         disp.repaint();
                         SwingUtilities.updateComponentTreeUI(thisWindow);
                         thisWindow.setPreferredSize(new Dimension(getContentWidth(), getContentHeight()));
                         thisWindow.pack();
                     }
-                }.start();
+                });
             }
         });
         
         /* BUTTON: btnAddAsset (Add Image Asset) */
-        btnAddAsset.addActionListener(new ActionListener() {
+        SelectOnFocusListener.addListenerTo(btnAddAsset);
+        btnAddAsset.addActionListener(new ThreadedActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionOccurred(ActionEvent e) {
                 try {
                     File imageFile = Utils.getChosenFile(thisWindow);
                     if (imageFile != null) { // File was chosen...
@@ -175,6 +187,7 @@ public class MainWindow extends JFrame {
         });
         
         /* TABLE: assetTable Selection Listener */
+        SelectOnFocusListener.addListenerTo(assetTable);
         assetTable.getSelectionModel().addListSelectionListener(new ListSelectionListener() {
             @Override
             public void valueChanged(ListSelectionEvent e) {
@@ -196,10 +209,34 @@ public class MainWindow extends JFrame {
             }
         });
         
-        /* BUTTON: btnUpdatePos (Update Position) */
-        btnUpdatePos.addActionListener(new ActionListener() {
+        /* BUTTON: btnExportAll (Export All) */
+        SelectOnFocusListener.addListenerTo(btnExportAll);
+        btnExportAll.addActionListener(new ThreadedActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionOccurred(ActionEvent e) {
+                if (assetManager.size() > 0) {
+                    ExportWindow epw = new ExportWindow(assetManager.getAssets(), thisWindow);
+                    epw.setVisible(true);
+                }
+            }
+        });
+        
+        /* TEXT Asset ID - txtAssetId */
+        SelectOnFocusListener.addListenerTo(txtAssetId);
+        
+        /* SPINNER X-Pos - spnXPos */
+        SelectOnFocusListener.addListenerTo(spnXPos);
+        ButtonOnEnterKeyListener.addListenerTo(spnXPos, btnUpdatePos);
+        
+        /* SPINNER Y-Pos - spnYPos */
+        SelectOnFocusListener.addListenerTo(spnYPos);
+        ButtonOnEnterKeyListener.addListenerTo(spnYPos, btnUpdatePos);
+        
+        /* BUTTON: btnUpdatePos (Update Position) */
+        SelectOnFocusListener.addListenerTo(btnUpdatePos);
+        btnUpdatePos.addActionListener(new ThreadedActionListener() {
+            @Override
+            public void actionOccurred(ActionEvent e) {
                 if (!txtAssetId.getText().isBlank()) {
                     disp.moveItem(txtAssetId.getText(), ((Integer)spnXPos.getValue()).intValue(), ((Integer)spnYPos.getValue()).intValue());
                     new Thread() {
@@ -213,10 +250,19 @@ public class MainWindow extends JFrame {
             }
         });
         
+        /* SPINNER Image Width - spnImageWidth */
+        SelectOnFocusListener.addListenerTo(spnImageWidth);
+        ButtonOnEnterKeyListener.addListenerTo(spnImageWidth, btnImgResize);
+        
+        /* SPINNER Image Height - spnImageHeight */
+        SelectOnFocusListener.addListenerTo(spnImageHeight);
+        ButtonOnEnterKeyListener.addListenerTo(spnImageHeight, btnImgResize);
+        
         /* BUTTON: btnImgResize (Resize) */
-        btnImgResize.addActionListener(new ActionListener() {
+        SelectOnFocusListener.addListenerTo(btnImgResize);
+        btnImgResize.addActionListener(new ThreadedActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionOccurred(ActionEvent e) {
                 if (!txtAssetId.getText().isBlank()) { // Asset ID is not blank...
                     ImageAsset asset = assetManager.get(txtAssetId.getText());
                     if (asset != null) {
@@ -225,41 +271,18 @@ public class MainWindow extends JFrame {
                             ((Integer) spnImageHeight.getValue()).intValue()
                         );
                         disp.registerItem(asset);
-                        new Thread() {
-                            @Override
-                            public void run() {
-                                disp.repaint();
-                                refreshImageAssets(false);
-                            }
-                        }.start();
+                        disp.repaint();
+                        refreshImageAssets(false);
                     }
                 }
             }
         });
         
-        /* BUTTON: btnImgRemove (Remove) */
-        btnImgRemove.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                if (!txtAssetId.getText().isBlank()) {
-                    assetManager.remove(txtAssetId.getText());
-                    disp.unregisterItem(txtAssetId.getText());
-                    new Thread() {
-                        @Override
-                        public void run() {
-                            disp.repaint();
-                            refreshImageAssets(true);
-                            resetSelectedAssetObjects();
-                        }
-                    }.start();
-                }
-            }
-        });
-        
         /* BUTTON: btnImgExport (Export) */
-        btnImgExport.addActionListener(new ActionListener() {
+        SelectOnFocusListener.addListenerTo(btnImgExport);
+        btnImgExport.addActionListener(new ThreadedActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
+            public void actionOccurred(ActionEvent e) {
                 if (!txtAssetId.getText().isBlank()) {
                     ImageAsset asset = assetManager.get(txtAssetId.getText());
                     List<ImageAsset> aList = new ArrayList<>();
@@ -270,20 +293,26 @@ public class MainWindow extends JFrame {
             }
         });
         
-        /* BUTTON: btnExportAll (Export All) */
-        btnExportAll.addActionListener(new ActionListener() {
+        /* BUTTON: btnImgRemove (Remove) */
+        SelectOnFocusListener.addListenerTo(btnImgRemove);
+        btnImgRemove.addActionListener(new ThreadedActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                if (assetManager.size() > 0) {
-                    ExportWindow epw = new ExportWindow(assetManager.getAssets(), thisWindow);
-                    epw.setVisible(true);
+            public void actionOccurred(ActionEvent e) {
+                if (!txtAssetId.getText().isBlank()) {
+                    assetManager.remove(txtAssetId.getText());
+                    disp.unregisterItem(txtAssetId.getText());
+                    disp.repaint();
+                    refreshImageAssets(true);
+                    resetSelectedAssetObjects();
                 }
             }
         });
     }
     
-    
-    
+    /**
+     * PRIVATE: This is where the various controls are added to their 
+     * appropriate container.
+     */
     private void doAddControlsToContainers() {
         /* Display Size: */
         dispCtrls.add(lblWidth);
@@ -320,6 +349,9 @@ public class MainWindow extends JFrame {
         pane.add(pnlSelAsset);
     }
     
+    /**
+     * PRIVATE: This is where all of the layouts used in this Window are defined.
+     */
     private void doInitializeLayouts() {
         /* Display Size: */
         layDispCtrls.putConstraint(SpringLayout.NORTH, lblWidth, 10, SpringLayout.NORTH, dispCtrls);
@@ -504,6 +536,13 @@ public class MainWindow extends JFrame {
         DefaultTableModel tModel = (DefaultTableModel) assetTable.getModel();
         tModel.setDataVector(assetManager.getData(), assetManager.getHeaders());
         tModel.fireTableDataChanged();
+        
+        assetTable.getColumnModel().getColumn(0).setPreferredWidth(400);
+        assetTable.getColumnModel().getColumn(1).setPreferredWidth(20);
+        assetTable.getColumnModel().getColumn(2).setPreferredWidth(20);
+        assetTable.getColumnModel().getColumn(3).setPreferredWidth(20);
+        assetTable.getColumnModel().getColumn(4).setPreferredWidth(20);
+        
         if (clearSelection) {
             assetTable.clearSelection();
         } else if (rSel != -1) {
