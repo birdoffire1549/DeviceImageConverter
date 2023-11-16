@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter.data.enums;
+package com.firebirdcss.tool.device_image_converter.data.enums;
 
 import java.util.ArrayList;
 import java.util.Arrays;

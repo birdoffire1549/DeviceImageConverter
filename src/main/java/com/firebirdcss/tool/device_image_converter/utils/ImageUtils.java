@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter.utils;
+package com.firebirdcss.tool.device_image_converter.utils;
 
 import java.awt.Graphics2D;
 import java.awt.Image;

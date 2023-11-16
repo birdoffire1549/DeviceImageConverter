@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter.listeners;
+package com.firebirdcss.tool.device_image_converter.listeners;
 
 import java.awt.Component;
 import java.awt.event.ActionEvent;

@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter.utils;
+package com.firebirdcss.tool.device_image_converter.utils;
 
 import java.awt.Component;
 import java.awt.Toolkit;
@@ -19,8 +19,8 @@ import java.util.Map.Entry;
 import javax.imageio.ImageIO;
 import javax.swing.JFileChooser;
 
-import com.firebirdcss.tool.image_converter.data.Settings;
-import com.firebirdcss.tool.image_converter.data.pojo.ImageExportInfo;
+import com.firebirdcss.tool.device_image_converter.data.Settings;
+import com.firebirdcss.tool.device_image_converter.data.pojo.ImageExportInfo;
 
 /**
  * This is a general utility class with static methods.
@@ -36,7 +36,7 @@ public class Utils {
     public static String toSafeCVarName(String name) {
         String result = name;
         if (result != null && !result.isEmpty()) {
-            int dotIndex = name.indexOf('.');
+            int dotIndex = name.lastIndexOf('.');
             if (dotIndex > 0) { // Assume extension; Use everything prior to dot...
                 result = result.substring(0, dotIndex);
             }
@@ -50,6 +50,9 @@ public class Utils {
                 } else {
                     if (nextCapital && !Character.isDigit(c)) {
                         sb.append(Character.toUpperCase(c));
+                        nextCapital = false;
+                    } else if (nextCapital) { // Is number but should be capital...
+                        sb.append("_").append(c);
                         nextCapital = false;
                     } else {
                         sb.append(c);
@@ -108,12 +111,33 @@ public class Utils {
         return null;
     }
     
+    public static File getNoOverwriteFile(File possibleFile) {
+        if (!possibleFile.exists()) {
+            
+            return possibleFile;
+        }
+        
+        String filePath = possibleFile.getAbsolutePath();
+        int dotIndex = filePath.lastIndexOf('.');
+        String extension = dotIndex == -1 ? "" : filePath.substring(dotIndex);
+        String filePathNoExt = dotIndex == -1 ? filePath : filePath.substring(0, dotIndex);
+        int count = 0;
+        File tempFile = null;
+        do {
+            count ++;
+            tempFile = new File(filePathNoExt + "_" + count + extension);
+        } while (tempFile.exists());
+        
+        return tempFile;
+    }
+    
     public static boolean persistDataToFiles(List<ImageExportInfo> data, Component dialogParent) throws IOException {
         JFileChooser fileChooser;
         if (Settings.lastExportDirectory.isEmpty()) { // No previous directory used...
             fileChooser = new JFileChooser();
         } else { // A previous directory was used...
-            fileChooser = new JFileChooser(new File(Settings.lastImportDirectory));
+            fileChooser = new JFileChooser(new File(Settings.lastExportDirectory));
+            fileChooser.setSelectedFile(fileChooser.getCurrentDirectory());
         }
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         fileChooser.setDialogTitle("Specify directory to create file(s)");
@@ -124,7 +148,7 @@ public class Utils {
             List<Exception> exceptions = new ArrayList<>();
             for (ImageExportInfo info : data) {
                 try {
-                    ImageIO.write(info.getImage(), info.getOutputType().toString(), info.getFile(Settings.lastExportDirectory));
+                    ImageIO.write(info.getImage(), info.getOutputType().toString(), getNoOverwriteFile(info.getFile(Settings.lastExportDirectory)));
                 } catch (IOException e) {
                     exceptions.add(e);
                 }
@@ -163,6 +187,7 @@ public class Utils {
             fileChooser = new JFileChooser();
         } else { // A previous directory was used...
             fileChooser = new JFileChooser(new File(Settings.lastImportDirectory));
+            fileChooser.setSelectedFile(fileChooser.getCurrentDirectory());
         }
         fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
         fileChooser.setDialogTitle("Specify directory to create file(s)");
@@ -172,7 +197,7 @@ public class Utils {
             Settings.lastExportDirectory = file.getAbsolutePath();
             List<Exception> exceptions = new ArrayList<>();
             for (Entry<String,String> e : data.entrySet()) {
-                try (FileWriter fw = new FileWriter(new File(Settings.lastExportDirectory + File.separator + e.getKey()));) {
+                try (FileWriter fw = new FileWriter(getNoOverwriteFile(new File(Settings.lastExportDirectory + File.separator + e.getKey())));) {
                     fw.write(e.getValue());
                     fw.flush();
                 } catch (IOException e1) {

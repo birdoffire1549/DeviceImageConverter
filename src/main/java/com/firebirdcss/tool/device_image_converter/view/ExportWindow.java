@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter.view;
+package com.firebirdcss.tool.device_image_converter.view;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -36,13 +36,13 @@ import javax.swing.event.CellEditorListener;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellEditor;
 
-import com.firebirdcss.tool.image_converter.data.AssetManager;
-import com.firebirdcss.tool.image_converter.data.Settings;
-import com.firebirdcss.tool.image_converter.data.enums.ImageType;
-import com.firebirdcss.tool.image_converter.data.pojo.ImageAsset;
-import com.firebirdcss.tool.image_converter.data.pojo.ImageExportInfo;
-import com.firebirdcss.tool.image_converter.utils.ImageUtils;
-import com.firebirdcss.tool.image_converter.utils.Utils;
+import com.firebirdcss.tool.device_image_converter.data.AssetManager;
+import com.firebirdcss.tool.device_image_converter.data.Settings;
+import com.firebirdcss.tool.device_image_converter.data.enums.ImageType;
+import com.firebirdcss.tool.device_image_converter.data.pojo.ImageAsset;
+import com.firebirdcss.tool.device_image_converter.data.pojo.ImageExportInfo;
+import com.firebirdcss.tool.device_image_converter.utils.ImageUtils;
+import com.firebirdcss.tool.device_image_converter.utils.Utils;
 
 public class ExportWindow extends JFrame {
     private static final long serialVersionUID = 1L;

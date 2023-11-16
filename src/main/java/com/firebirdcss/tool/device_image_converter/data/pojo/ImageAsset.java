@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter.data.pojo;
+package com.firebirdcss.tool.device_image_converter.data.pojo;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -7,7 +7,7 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 import javax.imageio.spi.IIORegistry;
 
-import com.firebirdcss.tool.image_converter.utils.ImageUtils;
+import com.firebirdcss.tool.device_image_converter.utils.ImageUtils;
 
 public class ImageAsset {
     private File imageFile;

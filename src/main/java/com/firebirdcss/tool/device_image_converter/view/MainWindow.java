@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter.view;
+package com.firebirdcss.tool.device_image_converter.view;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -37,13 +37,13 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellEditor;
 
-import com.firebirdcss.tool.image_converter.data.AssetManager;
-import com.firebirdcss.tool.image_converter.data.pojo.ImageAsset;
-import com.firebirdcss.tool.image_converter.listeners.ButtonOnEnterKeyListener;
-import com.firebirdcss.tool.image_converter.listeners.SelectOnFocusListener;
-import com.firebirdcss.tool.image_converter.listeners.ThreadedActionListener;
-import com.firebirdcss.tool.image_converter.utils.Utils;
-import com.firebirdcss.tool.image_converter.view.components.Screen;
+import com.firebirdcss.tool.device_image_converter.data.AssetManager;
+import com.firebirdcss.tool.device_image_converter.data.pojo.ImageAsset;
+import com.firebirdcss.tool.device_image_converter.listeners.ButtonOnEnterKeyListener;
+import com.firebirdcss.tool.device_image_converter.listeners.SelectOnFocusListener;
+import com.firebirdcss.tool.device_image_converter.listeners.ThreadedActionListener;
+import com.firebirdcss.tool.device_image_converter.utils.Utils;
+import com.firebirdcss.tool.device_image_converter.view.components.Screen;
 
 /**
  * This class is the code for the Main Window of the application.

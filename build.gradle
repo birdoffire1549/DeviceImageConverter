@@ -1,0 +1,57 @@
+/* ************************* *
+ * Gradle Plugin Definitions *
+ * ************************* */
+apply plugin: 'java'
+apply plugin: 'eclipse'
+
+/* **************************** *
+ * Custom variable deffinitions *
+ * **************************** */
+def appVersion = '1.0.0'
+
+/* ****************************** *
+ * Application Definition Section *
+ * ****************************** */
+sourceCompatibility = 11
+group = 'com.firebirdcss.tool.device_image_converter'
+version = appVersion
+
+sourceSets {
+        main {
+                java.srcDir 'src/main/java'
+                resources.srcDir 'src/main/resources'
+        }
+
+        test {
+                java.srcDir 'src/test/java'
+        }
+}
+
+/* ************************************ *
+ * Repository information goes below... *
+ * ************************************ */
+repositories {
+	mavenCentral()
+}
+
+/* ************************************ *
+ * Dependency information goes below... *
+ * ************************************ */
+dependencies {
+	testCompile 'junit:junit:4.12' // Used by JUnit tests
+}
+
+/* ************************************ *
+ * JAR build information goes below...  *
+ * ************************************ */
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'Device Image Converter',
+                   'Implementation-Version': version,
+                   'Implementation-Vendor': 'FirebirdCSS',
+                   'Build-Date': (new Date()).format('MM-dd-yyyy HH:mm:ss'),
+                   'Main-Class': 'com.firebirdcss.tool.device_image_converter.GuiAppMain'
+    }
+    
+    archiveName 'DeviceImageConverter.jar'
+}

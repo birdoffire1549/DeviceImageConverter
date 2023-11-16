@@ -1,8 +1,8 @@
-package com.firebirdcss.tool.image_converter;
+package com.firebirdcss.tool.device_image_converter;
 
 import javax.swing.SwingUtilities;
 
-import com.firebirdcss.tool.image_converter.view.MainWindow;
+import com.firebirdcss.tool.device_image_converter.view.MainWindow;
 
 /**
  * Main Entry point for the Application.

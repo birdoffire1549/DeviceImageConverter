@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter.data;
+package com.firebirdcss.tool.device_image_converter.data;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.firebirdcss.tool.image_converter.data.pojo.ImageAsset;
+import com.firebirdcss.tool.device_image_converter.data.pojo.ImageAsset;
 
 public class AssetManager {
     private static final String[] HEADERS = {"Asset ID", "Width", "Height", "XPos", "YPos"};

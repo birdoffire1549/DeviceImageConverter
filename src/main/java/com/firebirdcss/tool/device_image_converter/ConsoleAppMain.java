@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter;
+package com.firebirdcss.tool.device_image_converter;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
@@ -7,7 +7,7 @@ import java.util.Scanner;
 import javax.imageio.ImageIO;
 import javax.imageio.spi.IIORegistry;
 
-import com.firebirdcss.tool.image_converter.utils.ImageUtils;
+import com.firebirdcss.tool.device_image_converter.utils.ImageUtils;
 
 /**
  * This class contains the Main method and intended primary entry point for

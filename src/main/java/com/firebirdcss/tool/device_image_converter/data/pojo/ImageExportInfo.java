@@ -1,10 +1,10 @@
-package com.firebirdcss.tool.image_converter.data.pojo;
+package com.firebirdcss.tool.device_image_converter.data.pojo;
 
 import java.awt.image.BufferedImage;
 import java.io.File;
 
-import com.firebirdcss.tool.image_converter.data.enums.ImageType;
-import com.firebirdcss.tool.image_converter.utils.Utils;
+import com.firebirdcss.tool.device_image_converter.data.enums.ImageType;
+import com.firebirdcss.tool.device_image_converter.utils.Utils;
 
 /**
  * 

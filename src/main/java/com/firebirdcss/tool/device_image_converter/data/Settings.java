@@ -1,4 +1,4 @@
-package com.firebirdcss.tool.image_converter.data;
+package com.firebirdcss.tool.device_image_converter.data;
 
 /**
  * This is a place to keep settings related variables and constants
