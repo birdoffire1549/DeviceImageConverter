@@ -381,7 +381,9 @@ public class ExportWindow extends JFrame {
         assetsPane.setBorder(BorderFactory.createTitledBorder("Assets to Export:"));
         assetsPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         assetsPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-        assetTable.setRowSelectionAllowed(true);
+        assetTable.setRowSelectionAllowed(false);
+        assetTable.setColumnSelectionAllowed(false);
+        assetTable.setCellSelectionEnabled(false);
         assetTable.setDefaultEditor(Object.class, new TableCellEditor() {
             @Override
             public Object getCellEditorValue() {return null;}

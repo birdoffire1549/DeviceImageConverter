@@ -78,6 +78,16 @@ public class ImageUtils {
         return jpegImage;
     }
     
+    public static BufferedImage convertImageToBinaryColor(BufferedImage image) {
+        BufferedImage bwImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
+        Graphics2D g = bwImage.createGraphics();
+        g.fillRect(0, 0, image.getWidth(), image.getHeight());
+        g.drawImage(image, 0, 0, null);
+        g.dispose();
+        
+        return bwImage;
+    }
+    
     /**
      * This removes the Alpha from an image if it exists as that can
      * interfere with some processes.

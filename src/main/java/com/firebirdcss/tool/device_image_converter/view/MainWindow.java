@@ -7,6 +7,8 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,6 +17,8 @@ import java.util.List;
 
 import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JColorChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -65,17 +69,19 @@ public class MainWindow extends JFrame {
     private SpringLayout mainLayout = new SpringLayout();
     
     /* Device Display: */
-    private JLabel lblDisp = new JLabel("Device Display:");
+    private JLabel lblDeviceDisp = new JLabel("Device Display:");
     private Screen disp = new Screen(128, 64);
     
     /* JPANEL: Display Settings: */
-    private JPanel dispCtrls = new JPanel();
-    private JLabel lblWidth = new JLabel("Width:");
-    private JSpinner width = new JSpinner(new SpinnerNumberModel(128, 5, 300, 1));
-    private JLabel lblHeight = new JLabel("Height:");
-    private JSpinner height = new JSpinner(new SpinnerNumberModel(64, 5, 300, 1));
-    private JButton btnDispUpdate = new JButton("Update");
+    private JPanel pnlDispSettings = new JPanel();
     private SpringLayout layDispCtrls = new SpringLayout();
+    private JLabel lblDispWidth = new JLabel("Width:");
+    private JSpinner spnDispWidth = new JSpinner(new SpinnerNumberModel(128, 5, 300, 1));
+    private JLabel lblDispHeight = new JLabel("Height:");
+    private JSpinner spnDispHeight = new JSpinner(new SpinnerNumberModel(64, 5, 300, 1));
+    private JButton btnDispUpdate = new JButton("Update");
+    private JButton btnChgScrColor = new JButton("BG Color");
+    private JCheckBox chkDispBinary = new JCheckBox("Show Binary");
     
     /* BUTTTON: Add Image Asset */
     private JButton btnAddAsset = new JButton("Add Image Asset");
@@ -134,12 +140,12 @@ public class MainWindow extends JFrame {
      */
     private void doAddActionListeners() {
         /* SPINNER Width - width */
-        SelectOnFocusListener.addListenerTo(width);
-        ButtonOnEnterKeyListener.addListenerTo(width, btnDispUpdate);
+        SelectOnFocusListener.addListenerTo(spnDispWidth);
+        ButtonOnEnterKeyListener.addListenerTo(spnDispWidth, btnDispUpdate);
         
         /* SPINNER Height - height */
-        SelectOnFocusListener.addListenerTo(height);
-        ButtonOnEnterKeyListener.addListenerTo(height, btnDispUpdate);
+        SelectOnFocusListener.addListenerTo(spnDispHeight);
+        ButtonOnEnterKeyListener.addListenerTo(spnDispHeight, btnDispUpdate);
         
         /* BUTTON: btnDispUpdate (Update) */
         SelectOnFocusListener.addListenerTo(btnDispUpdate);
@@ -150,13 +156,33 @@ public class MainWindow extends JFrame {
                 SwingUtilities.invokeLater(new Runnable() {
                     @Override
                     public void run() {
-                        disp.setSize(((Integer) width.getValue()).intValue(), ((Integer) height.getValue()).intValue());
+                        disp.setSize(((Integer) spnDispWidth.getValue()).intValue(), ((Integer) spnDispHeight.getValue()).intValue());
                         disp.repaint();
                         SwingUtilities.updateComponentTreeUI(thisWindow);
                         thisWindow.setPreferredSize(new Dimension(getContentWidth(), getContentHeight()));
                         thisWindow.pack();
                     }
                 });
+            }
+        });
+        
+        chkDispBinary.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                if (e.getStateChange() == ItemEvent.SELECTED) {
+                    disp.showBinary(true);
+                } else {
+                    disp.showBinary(false);
+                }
+            }
+        });
+        
+        /* BUTTON: btnChgScrColor (BG Color)  */
+        btnChgScrColor.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Color newColor = JColorChooser.showDialog(thisWindow, "Pick Color", disp.getBackground());
+                disp.setBackground(newColor);
             }
         });
         
@@ -315,11 +341,13 @@ public class MainWindow extends JFrame {
      */
     private void doAddControlsToContainers() {
         /* Display Size: */
-        dispCtrls.add(lblWidth);
-        dispCtrls.add(width);
-        dispCtrls.add(lblHeight);
-        dispCtrls.add(height);
-        dispCtrls.add(btnDispUpdate);
+        pnlDispSettings.add(lblDispWidth);
+        pnlDispSettings.add(spnDispWidth);
+        pnlDispSettings.add(lblDispHeight);
+        pnlDispSettings.add(spnDispHeight);
+        pnlDispSettings.add(btnDispUpdate);
+        pnlDispSettings.add(btnChgScrColor);
+        pnlDispSettings.add(chkDispBinary);
         
         /* Selected Asset: */
         pnlSelAsset.add(lblAssetId);
@@ -340,9 +368,9 @@ public class MainWindow extends JFrame {
         pnlSelAsset.add(btnImgRemove);
         
         /* Main Window */
-        pane.add(lblDisp);
+        pane.add(lblDeviceDisp);
         pane.add(disp);
-        pane.add(dispCtrls);
+        pane.add(pnlDispSettings);
         pane.add(btnAddAsset);
         pane.add(assetsPane);
         pane.add(btnExportAll);
@@ -354,16 +382,20 @@ public class MainWindow extends JFrame {
      */
     private void doInitializeLayouts() {
         /* Display Size: */
-        layDispCtrls.putConstraint(SpringLayout.NORTH, lblWidth, 10, SpringLayout.NORTH, dispCtrls);
-        layDispCtrls.putConstraint(SpringLayout.WEST, lblWidth, 6, SpringLayout.WEST, dispCtrls);
-        layDispCtrls.putConstraint(SpringLayout.NORTH, width, 6, SpringLayout.NORTH, dispCtrls);
-        layDispCtrls.putConstraint(SpringLayout.WEST, width, 3, SpringLayout.EAST, lblWidth);
-        layDispCtrls.putConstraint(SpringLayout.NORTH, lblHeight, 10, SpringLayout.NORTH, dispCtrls);
-        layDispCtrls.putConstraint(SpringLayout.WEST, lblHeight, 12, SpringLayout.EAST, width);
-        layDispCtrls.putConstraint(SpringLayout.NORTH, height, 6, SpringLayout.NORTH, dispCtrls);
-        layDispCtrls.putConstraint(SpringLayout.WEST, height, 3, SpringLayout.EAST, lblHeight);
-        layDispCtrls.putConstraint(SpringLayout.NORTH, btnDispUpdate, 6, SpringLayout.NORTH, dispCtrls);
-        layDispCtrls.putConstraint(SpringLayout.EAST, btnDispUpdate, -6, SpringLayout.EAST, dispCtrls);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, lblDispWidth, 10, SpringLayout.NORTH, pnlDispSettings);
+        layDispCtrls.putConstraint(SpringLayout.WEST, lblDispWidth, 6, SpringLayout.WEST, pnlDispSettings);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, spnDispWidth, 6, SpringLayout.NORTH, pnlDispSettings);
+        layDispCtrls.putConstraint(SpringLayout.WEST, spnDispWidth, 3, SpringLayout.EAST, lblDispWidth);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, lblDispHeight, 10, SpringLayout.NORTH, pnlDispSettings);
+        layDispCtrls.putConstraint(SpringLayout.WEST, lblDispHeight, 12, SpringLayout.EAST, spnDispWidth);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, spnDispHeight, 6, SpringLayout.NORTH, pnlDispSettings);
+        layDispCtrls.putConstraint(SpringLayout.WEST, spnDispHeight, 3, SpringLayout.EAST, lblDispHeight);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, btnDispUpdate, 6, SpringLayout.NORTH, pnlDispSettings);
+        layDispCtrls.putConstraint(SpringLayout.EAST, btnDispUpdate, -6, SpringLayout.EAST, pnlDispSettings);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, btnChgScrColor, 6, SpringLayout.SOUTH, lblDispWidth);
+        layDispCtrls.putConstraint(SpringLayout.WEST, btnChgScrColor, 6, SpringLayout.WEST, pnlDispSettings);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, chkDispBinary, 6, SpringLayout.SOUTH, lblDispWidth);
+        layDispCtrls.putConstraint(SpringLayout.WEST, chkDispBinary, 6, SpringLayout.EAST, btnChgScrColor);
         
         /* Image Assets: */
         selAssetLayout.putConstraint(SpringLayout.NORTH, lblAssetId, 6, SpringLayout.NORTH, pnlSelAsset);
@@ -402,30 +434,33 @@ public class MainWindow extends JFrame {
         selAssetLayout.putConstraint(SpringLayout.WEST, btnImgRemove, 6, SpringLayout.EAST, btnImgExport);
         
         /* Main Window */
-        mainLayout.putConstraint(SpringLayout.NORTH, lblDisp, 6, SpringLayout.NORTH, pane);
-        mainLayout.putConstraint(SpringLayout.HORIZONTAL_CENTER, lblDisp, 0, SpringLayout.HORIZONTAL_CENTER, pane);
-        mainLayout.putConstraint(SpringLayout.NORTH, disp, 3, SpringLayout.SOUTH, lblDisp);
+        mainLayout.putConstraint(SpringLayout.NORTH, lblDeviceDisp, 6, SpringLayout.NORTH, pane);
+        mainLayout.putConstraint(SpringLayout.HORIZONTAL_CENTER, lblDeviceDisp, 0, SpringLayout.HORIZONTAL_CENTER, pane);
+        mainLayout.putConstraint(SpringLayout.NORTH, disp, 3, SpringLayout.SOUTH, lblDeviceDisp);
         mainLayout.putConstraint(SpringLayout.HORIZONTAL_CENTER, disp, 0, SpringLayout.HORIZONTAL_CENTER, pane);
-        mainLayout.putConstraint(SpringLayout.NORTH, dispCtrls, 12, SpringLayout.SOUTH, disp);
-        mainLayout.putConstraint(SpringLayout.HORIZONTAL_CENTER, dispCtrls, 0, SpringLayout.HORIZONTAL_CENTER, pane);
-        mainLayout.putConstraint(SpringLayout.NORTH, btnAddAsset, 12, SpringLayout.SOUTH, dispCtrls);
+        mainLayout.putConstraint(SpringLayout.NORTH, pnlDispSettings, 12, SpringLayout.SOUTH, disp);
+        mainLayout.putConstraint(SpringLayout.HORIZONTAL_CENTER, pnlDispSettings, 0, SpringLayout.HORIZONTAL_CENTER, pane);
+        mainLayout.putConstraint(SpringLayout.NORTH, btnAddAsset, 12, SpringLayout.SOUTH, pnlDispSettings);
         mainLayout.putConstraint(SpringLayout.HORIZONTAL_CENTER, btnAddAsset, 0, SpringLayout.HORIZONTAL_CENTER, pane);
         mainLayout.putConstraint(SpringLayout.NORTH, assetsPane, 12, SpringLayout.SOUTH, btnAddAsset);
         mainLayout.putConstraint(SpringLayout.HORIZONTAL_CENTER, assetsPane, 0, SpringLayout.HORIZONTAL_CENTER, pane);
-        mainLayout.putConstraint(SpringLayout.NORTH, btnExportAll, 12, SpringLayout.SOUTH, assetsPane);
-        mainLayout.putConstraint(SpringLayout.HORIZONTAL_CENTER, btnExportAll, 0, SpringLayout.HORIZONTAL_CENTER, pane);
-        mainLayout.putConstraint(SpringLayout.NORTH, pnlSelAsset, 12, SpringLayout.SOUTH, btnExportAll);
+        mainLayout.putConstraint(SpringLayout.NORTH, pnlSelAsset, 12, SpringLayout.SOUTH, assetsPane);
         mainLayout.putConstraint(SpringLayout.HORIZONTAL_CENTER, pnlSelAsset, 0, SpringLayout.HORIZONTAL_CENTER, pane);
+        mainLayout.putConstraint(SpringLayout.NORTH, btnExportAll, 12, SpringLayout.SOUTH, pnlSelAsset);
+        mainLayout.putConstraint(SpringLayout.HORIZONTAL_CENTER, btnExportAll, 0, SpringLayout.HORIZONTAL_CENTER, pane);
+        
     }
     
     private void doInitializeControls() {
         /* Main Window */
         pane.setLayout(mainLayout);
         
+        disp.setBackground(Color.WHITE);
+        
         /* Display Size: */
-        dispCtrls.setBorder(BorderFactory.createTitledBorder("Display Settings:"));
-        dispCtrls.setPreferredSize(new Dimension(400, 70));
-        dispCtrls.setLayout(layDispCtrls);
+        pnlDispSettings.setBorder(BorderFactory.createTitledBorder("Display Settings:"));
+        pnlDispSettings.setPreferredSize(new Dimension(400, 85));
+        pnlDispSettings.setLayout(layDispCtrls);
         
         /* BUTTON: Add Image Asset */
         btnAddAsset.setPreferredSize(new Dimension(400, 25));
@@ -484,9 +519,9 @@ public class MainWindow extends JFrame {
     
     private int getContentHeight() {
         int result = 
-            lblDisp.getPreferredSize().height +
+            lblDeviceDisp.getPreferredSize().height +
             disp.getPreferredSize().height +
-            dispCtrls.getPreferredSize().height +
+            pnlDispSettings.getPreferredSize().height +
             btnAddAsset.getPreferredSize().height + 
             assetsPane.getPreferredSize().height +
             btnExportAll.getPreferredSize().height + 

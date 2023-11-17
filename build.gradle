@@ -7,7 +7,7 @@ apply plugin: 'eclipse'
 /* **************************** *
  * Custom variable deffinitions *
  * **************************** */
-def appVersion = '1.0.0'
+def appVersion = '1.2.0'
 
 /* ****************************** *
  * Application Definition Section *

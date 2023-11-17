@@ -6,7 +6,10 @@ import java.awt.image.BufferedImage;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.swing.SwingUtilities;
+
 import com.firebirdcss.tool.device_image_converter.data.pojo.ImageAsset;
+import com.firebirdcss.tool.device_image_converter.utils.ImageUtils;
 
 /**
  * 
@@ -21,6 +24,8 @@ public class Screen extends Canvas {
     private int scrWidth;
     private int scrHeight;
     private Map<String, ImageAsset> screenItems = new HashMap<>();
+    
+    private boolean showBinary = false;
     
     /**
      * CONSTRUCTOR: 
@@ -42,7 +47,13 @@ public class Screen extends Canvas {
     public void paint(Graphics g) {
         for (ImageAsset itm :screenItems.values()) {
             BufferedImage scaled = itm.getScaledImage() != null ? itm.getScaledImage() : itm.getMaxScaledImage(scrWidth, scrHeight);
-            g.drawImage(scaled, itm.getX(), itm.getY(), this);
+            BufferedImage process1;
+            if (showBinary) {
+                process1 = ImageUtils.convertImageToBinaryColor(scaled);
+            } else {
+                process1 = scaled;
+            }
+            g.drawImage(process1, itm.getX(), itm.getY(), this);
         }
         g.drawRect(0, 0, scrWidth, scrHeight);
     }
@@ -64,6 +75,16 @@ public class Screen extends Canvas {
             itm.setX(newX);
             itm.setY(newY);
         }
+    }
+    
+    public void showBinary(boolean enabled) {
+        this.showBinary = enabled;
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                repaint();
+            }
+        });
     }
     
     /*
