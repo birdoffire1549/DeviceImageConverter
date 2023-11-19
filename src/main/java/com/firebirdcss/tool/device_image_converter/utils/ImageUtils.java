@@ -1,11 +1,14 @@
 package com.firebirdcss.tool.device_image_converter.utils;
 
+import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.imageio.ImageIO;
 
@@ -78,14 +81,46 @@ public class ImageUtils {
         return jpegImage;
     }
     
-    public static BufferedImage convertImageToBinaryColor(BufferedImage image) {
-        BufferedImage bwImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
-        Graphics2D g = bwImage.createGraphics();
+    public static BufferedImage convertImageToBinaryColor(BufferedImage image, Color zeroColor, Color oneColor) {
+        BufferedImage bImage = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_BYTE_BINARY);
+        Graphics2D g = bImage.createGraphics();
         g.fillRect(0, 0, image.getWidth(), image.getHeight());
         g.drawImage(image, 0, 0, null);
         g.dispose();
         
-        return bwImage;
+        BufferedImage cImage = new BufferedImage(bImage.getWidth(), bImage.getHeight(), BufferedImage.TYPE_INT_RGB);
+        for (int y = 0; y < bImage.getHeight(); y ++) {
+            for (int x = 0; x < bImage.getWidth(); x ++) {
+                cImage.setRGB(x, y, bImage.getRGB(x, y) == 0xFFFFFFFF ? oneColor.getRGB() : zeroColor.getRGB());
+            }
+        }
+        
+        return cImage;
+    }
+    
+    public static BufferedImage invertBinaryImage(BufferedImage binaryImage) {
+        List<Color> colors = new ArrayList<>();
+        
+        for (int y = 0; y < binaryImage.getHeight(); y ++) {
+            for (int x = 0; x < binaryImage.getWidth(); x ++) {
+                Color c = new Color(binaryImage.getRGB(x, y));
+                if (colors.size() < 2 && !colors.contains(c)) {
+                    colors.add(c);
+                } else if (colors.size() == 2 && !colors.contains(c)) {
+                    
+                    return binaryImage;
+                }
+            }
+        }
+        
+        BufferedImage nImg = new BufferedImage(binaryImage.getWidth(), binaryImage.getHeight(), BufferedImage.TYPE_INT_RGB);
+        for (int y = 0; y < nImg.getHeight(); y ++) {
+            for (int x = 0; x < nImg.getWidth(); x ++) {
+                nImg.setRGB(x, y,(binaryImage.getRGB(x, y) == colors.get(0).getRGB() ? colors.get(1).getRGB() : colors.get(0).getRGB()));
+            }
+        }
+        
+        return nImg;
     }
     
     /**

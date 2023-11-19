@@ -1,6 +1,7 @@
 package com.firebirdcss.tool.device_image_converter.view.components;
 
 import java.awt.Canvas;
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 import java.util.HashMap;
@@ -26,6 +27,9 @@ public class Screen extends Canvas {
     private Map<String, ImageAsset> screenItems = new HashMap<>();
     
     private boolean showBinary = false;
+    private boolean invertImages = false;
+    private Color bgColor = Color.WHITE;
+    private Color fgColor = Color.BLACK;
     
     /**
      * CONSTRUCTOR: 
@@ -47,13 +51,18 @@ public class Screen extends Canvas {
     public void paint(Graphics g) {
         for (ImageAsset itm :screenItems.values()) {
             BufferedImage scaled = itm.getScaledImage() != null ? itm.getScaledImage() : itm.getMaxScaledImage(scrWidth, scrHeight);
-            BufferedImage process1;
+            BufferedImage finalImage;
             if (showBinary) {
-                process1 = ImageUtils.convertImageToBinaryColor(scaled);
+                BufferedImage binary = ImageUtils.convertImageToBinaryColor(scaled, this.bgColor, this.fgColor);
+                if (invertImages) {
+                    finalImage = ImageUtils.invertBinaryImage(binary);
+                } else {
+                    finalImage = binary;
+                }
             } else {
-                process1 = scaled;
+                finalImage = scaled;
             }
-            g.drawImage(process1, itm.getX(), itm.getY(), this);
+            g.drawImage(finalImage, itm.getX(), itm.getY(), this);
         }
         g.drawRect(0, 0, scrWidth, scrHeight);
     }
@@ -87,6 +96,57 @@ public class Screen extends Canvas {
         });
     }
     
+    public void invertImages(boolean enabled) {
+        this.invertImages = enabled;
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                repaint();
+            }
+        });
+    }
+    
+    /* (non-Javadoc)
+     * @see java.awt.Component#getForeground()
+     */
+    @Override
+    public Color getForeground() {
+        
+        return this.fgColor;
+    }
+
+    /* (non-Javadoc)
+     * @see java.awt.Component#setForeground(java.awt.Color)
+     */
+    @Override
+    public void setForeground(Color c) {
+        this.fgColor = c;
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                repaint();
+            }
+        });
+    }
+
+    /* (non-Javadoc)
+     * @see java.awt.Component#getBackground()
+     */
+    @Override
+    public Color getBackground() {
+        
+        return this.bgColor;
+    }
+
+    /* (non-Javadoc)
+     * @see java.awt.Component#setBackground(java.awt.Color)
+     */
+    @Override
+    public void setBackground(Color c) {
+        this.bgColor = c;
+        super.setBackground(c);
+    }
+
     /*
      * (non-Javadoc)
      * @see java.awt.Component#setSize(int, int)

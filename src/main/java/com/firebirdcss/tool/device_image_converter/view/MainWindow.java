@@ -80,8 +80,12 @@ public class MainWindow extends JFrame {
     private JLabel lblDispHeight = new JLabel("Height:");
     private JSpinner spnDispHeight = new JSpinner(new SpinnerNumberModel(64, 5, 300, 1));
     private JButton btnDispUpdate = new JButton("Update");
-    private JButton btnChgScrColor = new JButton("BG Color");
+    private JLabel lblBGColorExample = new JLabel();
+    private JButton btnChgBGColor = new JButton("BG Color");
+    private JLabel lblFGColorExample = new JLabel();
+    private JButton btnChgFGColor = new JButton("FG Color");
     private JCheckBox chkDispBinary = new JCheckBox("Show Binary");
+    private JCheckBox chkDispInverted = new JCheckBox("Invert Image");
     
     /* BUTTTON: Add Image Asset */
     private JButton btnAddAsset = new JButton("Add Image Asset");
@@ -171,18 +175,46 @@ public class MainWindow extends JFrame {
             public void itemStateChanged(ItemEvent e) {
                 if (e.getStateChange() == ItemEvent.SELECTED) {
                     disp.showBinary(true);
+                    chkDispInverted.setEnabled(true);
+                    lblFGColorExample.setEnabled(true);
+                    btnChgFGColor.setEnabled(true);
                 } else {
                     disp.showBinary(false);
+                    chkDispInverted.setSelected(false);
+                    chkDispInverted.setEnabled(false);
+                    lblFGColorExample.setEnabled(false);
+                    btnChgFGColor.setEnabled(false);
+                }
+            }
+        });
+        
+        chkDispInverted.addItemListener(new ItemListener() {
+            @Override
+            public void itemStateChanged(ItemEvent e) {
+                if (e.getStateChange() == ItemEvent.SELECTED) {
+                    disp.invertImages(true);
+                } else {
+                    disp.invertImages(false);
                 }
             }
         });
         
         /* BUTTON: btnChgScrColor (BG Color)  */
-        btnChgScrColor.addActionListener(new ActionListener() {
+        btnChgBGColor.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                Color newColor = JColorChooser.showDialog(thisWindow, "Pick Color", disp.getBackground());
+                Color newColor = JColorChooser.showDialog(thisWindow, "Pick Background Color", disp.getBackground());
                 disp.setBackground(newColor);
+                lblBGColorExample.setBackground(newColor);
+            }
+        });
+        
+        btnChgFGColor.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                Color newColor = JColorChooser.showDialog(thisWindow, "Pick Forground Color", disp.getForeground());
+                disp.setForeground(newColor);
+                lblFGColorExample.setBackground(newColor);
             }
         });
         
@@ -346,8 +378,12 @@ public class MainWindow extends JFrame {
         pnlDispSettings.add(lblDispHeight);
         pnlDispSettings.add(spnDispHeight);
         pnlDispSettings.add(btnDispUpdate);
-        pnlDispSettings.add(btnChgScrColor);
+        pnlDispSettings.add(lblBGColorExample);
+        pnlDispSettings.add(btnChgBGColor);
+        pnlDispSettings.add(lblFGColorExample);
+        pnlDispSettings.add(btnChgFGColor);
         pnlDispSettings.add(chkDispBinary);
+        pnlDispSettings.add(chkDispInverted);
         
         /* Selected Asset: */
         pnlSelAsset.add(lblAssetId);
@@ -392,10 +428,18 @@ public class MainWindow extends JFrame {
         layDispCtrls.putConstraint(SpringLayout.WEST, spnDispHeight, 3, SpringLayout.EAST, lblDispHeight);
         layDispCtrls.putConstraint(SpringLayout.NORTH, btnDispUpdate, 6, SpringLayout.NORTH, pnlDispSettings);
         layDispCtrls.putConstraint(SpringLayout.EAST, btnDispUpdate, -6, SpringLayout.EAST, pnlDispSettings);
-        layDispCtrls.putConstraint(SpringLayout.NORTH, btnChgScrColor, 6, SpringLayout.SOUTH, lblDispWidth);
-        layDispCtrls.putConstraint(SpringLayout.WEST, btnChgScrColor, 6, SpringLayout.WEST, pnlDispSettings);
-        layDispCtrls.putConstraint(SpringLayout.NORTH, chkDispBinary, 6, SpringLayout.SOUTH, lblDispWidth);
-        layDispCtrls.putConstraint(SpringLayout.WEST, chkDispBinary, 6, SpringLayout.EAST, btnChgScrColor);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, lblBGColorExample, 10, SpringLayout.SOUTH, lblDispWidth);
+        layDispCtrls.putConstraint(SpringLayout.WEST, lblBGColorExample, 6, SpringLayout.WEST, pnlDispSettings);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, btnChgBGColor, 6, SpringLayout.SOUTH, lblDispWidth);
+        layDispCtrls.putConstraint(SpringLayout.WEST, btnChgBGColor, 3, SpringLayout.EAST, lblBGColorExample);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, lblFGColorExample, 10, SpringLayout.SOUTH, lblDispWidth);
+        layDispCtrls.putConstraint(SpringLayout.WEST, lblFGColorExample, 24, SpringLayout.EAST, btnChgBGColor);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, btnChgFGColor, 6, SpringLayout.SOUTH, lblDispWidth);
+        layDispCtrls.putConstraint(SpringLayout.WEST, btnChgFGColor, 3, SpringLayout.EAST, lblFGColorExample);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, chkDispBinary, 6, SpringLayout.SOUTH, btnChgBGColor);
+        layDispCtrls.putConstraint(SpringLayout.WEST, chkDispBinary, 6, SpringLayout.WEST, pnlDispSettings);
+        layDispCtrls.putConstraint(SpringLayout.NORTH, chkDispInverted, 6, SpringLayout.SOUTH, btnChgBGColor);
+        layDispCtrls.putConstraint(SpringLayout.WEST, chkDispInverted, 6, SpringLayout.EAST, chkDispBinary);
         
         /* Image Assets: */
         selAssetLayout.putConstraint(SpringLayout.NORTH, lblAssetId, 6, SpringLayout.NORTH, pnlSelAsset);
@@ -457,10 +501,21 @@ public class MainWindow extends JFrame {
         
         disp.setBackground(Color.WHITE);
         
-        /* Display Size: */
+        /* Display Settings: */
         pnlDispSettings.setBorder(BorderFactory.createTitledBorder("Display Settings:"));
-        pnlDispSettings.setPreferredSize(new Dimension(400, 85));
+        pnlDispSettings.setPreferredSize(new Dimension(400, 115));
         pnlDispSettings.setLayout(layDispCtrls);
+        lblBGColorExample.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+        lblBGColorExample.setPreferredSize(new Dimension(20, 20));
+        lblBGColorExample.setOpaque(true);
+        lblBGColorExample.setBackground(Color.WHITE);
+        lblFGColorExample.setBorder(BorderFactory.createLineBorder(Color.BLACK));
+        lblFGColorExample.setPreferredSize(new Dimension(20, 20));
+        lblFGColorExample.setOpaque(true);
+        lblFGColorExample.setBackground(Color.BLACK);
+        lblFGColorExample.setEnabled(false);
+        btnChgFGColor.setEnabled(false);
+        chkDispInverted.setEnabled(false);
         
         /* BUTTON: Add Image Asset */
         btnAddAsset.setPreferredSize(new Dimension(400, 25));
